@@ -140,6 +140,11 @@ void DeferredRenderer::resize(int w, int h)
     fbo->addColorAttachment(2, gboNormal);
     fbo->addColorAttachment(3, gboAlbedoSpec);
     fbo->addDepthAttachment(fboDepth);
+
+    // Signal which attachments we are using in this framebuffer
+    unsigned int attachments[4] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,GL_COLOR_ATTACHMENT2,GL_COLOR_ATTACHMENT3};
+    gl->glDrawBuffers(4, attachments);
+
     fbo->checkStatus();
     fbo->release();
 }
@@ -354,7 +359,7 @@ void DeferredRenderer::passBlit()
         else if(shownTexture() == "Position"){
             gl->glBindTexture(GL_TEXTURE_2D, gboPosition);
         }
-        else if(shownTexture() == "Normal"){
+        else if(shownTexture() == "Normals"){
             gl->glBindTexture(GL_TEXTURE_2D, gboNormal);
         }
         else if(shownTexture() == "AlbedoSpec"){
