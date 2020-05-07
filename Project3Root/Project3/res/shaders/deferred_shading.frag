@@ -31,15 +31,16 @@ uniform sampler2D gboNormal;
 uniform sampler2D gboAlbedoSpec;
 
 out vec4 outColor;
+in vec2 texCoord;
 
 #define AMBIENT .05
 
 void main(void)
 {
     // Prep vals
-    vec3 rPos = texture(gboPosition, gl_FragCoord.xy).rgb;
-    vec3 N = texture(gboNormal, gl_FragCoord.xy).rgb;
-    vec4 albedoSpec = texture(gboAlbedoSpec, gl_FragCoord.xy).rgba;
+    vec3 rPos = texture(gboPosition, texCoord).rgb;
+    vec3 N = texture(gboNormal, texCoord).rgb;
+    vec4 albedoSpec = texture(gboAlbedoSpec, texCoord).rgba;
 
     vec3 camVec = normalize(rPos - camPos);
 

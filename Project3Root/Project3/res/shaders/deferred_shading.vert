@@ -1,20 +1,11 @@
 #version 330 core
-/*
-layout(location = 1) vec3 gboPosition;
-layout(location = 2) vec3 gboNormal;
-layout(location = 3) vec4 gboAlbedoSpec;
 
-out vec3 rPos;
-out vec3 vNormal;
-out vec4 albedoSpec;
-*/
+layout(location=0) in vec3 position;
+
+out vec2 texCoord;
+
 void main(void)
 {
-/*
-    rPos = gboPosition;
-
-    vNormal = gboNormal;
-
-    albedoSpec = gboAlbedoSpec;
-*/
+    texCoord = position.xy * 0.5 + vec2(0.5);
+    gl_Position = vec4(position, 1.0);
 }

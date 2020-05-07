@@ -141,7 +141,7 @@ void DeferredRenderer::resize(int w, int h)
     fbo->addColorAttachment(3, gboAlbedoSpec);
     fbo->addDepthAttachment(fboDepth);
 
-    // Signal which attachments we are using in this framebuffer
+    // Signal which COLOR attachments we are using in this framebuffer
     unsigned int attachments[4] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,GL_COLOR_ATTACHMENT2,GL_COLOR_ATTACHMENT3};
     gl->glDrawBuffers(4, attachments);
 
@@ -334,6 +334,18 @@ void DeferredRenderer::passLighting()
         program.setUniformValue("colorTexture", 0);
         gl->glActiveTexture(GL_TEXTURE0);
         gl->glBindTexture(GL_TEXTURE_2D, fboColor);
+
+        program.setUniformValue("gboPosition", 1);
+        gl->glActiveTexture(GL_TEXTURE1);
+        gl->glBindTexture(GL_TEXTURE_2D, gboPosition);
+
+        program.setUniformValue("gboNormal", 2);
+        gl->glActiveTexture(GL_TEXTURE2);
+        gl->glBindTexture(GL_TEXTURE_2D, gboNormal);
+
+        program.setUniformValue("gboAlbedoSpec", 3);
+        gl->glActiveTexture(GL_TEXTURE3);
+        gl->glBindTexture(GL_TEXTURE_2D, gboAlbedoSpec);
 
         resourceManager->quad->submeshes[0]->draw();
     }
