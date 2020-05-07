@@ -26,9 +26,10 @@ uniform vec3 lightColor[MAX_LIGHTS];
 uniform int lightCount;
 uniform vec3 camPos;
 
-in vec3 vNormal;
-in vec2 vTexCoords;
-in vec3 rPos;
+uniform sampler2D gboPosition;
+uniform sampler2D gboNormal;
+uniform sampler2D gboAlbedoSpec;
+
 out vec4 outColor;
 
 #define AMBIENT .05
@@ -36,15 +37,17 @@ out vec4 outColor;
 void main(void)
 {
     // Prep vals
-    vec3 N = normalize(vNormal);
+    vec3 rPos = texture(gboPosition, gl_FragCoord.xy).rgb;
+    vec3 N = texture(gboNormal, gl_FragCoord.xy).rgb;
+    vec4 albedoSpec = texture(gboAlbedoSpec, gl_FragCoord.xy).rgba;
+
     vec3 camVec = normalize(rPos - camPos);
 
     // TODO: Local illumination
     // Ambient
     // Diffuse
     // Specular
-    vec3 objCol = albedo.rgb * texture2D(albedoTexture, vTexCoords).rgb;
-    vec3 finalCol = objCol * AMBIENT;
+    vec3 finalCol = albedoSpec.rgb * AMBIENT;
 
     for(int i = 0; i < lightCount; i++)
     {
@@ -55,7 +58,7 @@ void main(void)
         ldir = normalize((-1.) * ldir);
 
         float k_d = max(dot(ldir,N), 0.);
-        finalCol.rgb += objCol.rgb * k_d * lightColor[i].rgb;
+        finalCol.rgb += albedoSpec.rgb * k_d * lightColor[i].rgb;
 
         // We need to pass camera position or direction to get specular ffs
         // Blin = Halfway direction between CameraVector and Light Direction
@@ -67,8 +70,7 @@ void main(void)
         vec3 PhongVec = normalize(reflect(ldir, N));
         float k_s = pow(max(dot(camVec, PhongVec), 0.), 16.);
 
-        vec3 specVal = specular.rgb * texture2D(specularTexture, vTexCoords).rgb;
-        finalCol.rgb += specVal * albedo.rgb * texture2D(albedoTexture, vTexCoords).rgb * k_s * lightColor[i].rgb;
+        finalCol.rgb += albedo.rgb * albedoSpec.a * k_s * lightColor[i].rgb;
 
     }
 

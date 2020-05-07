@@ -17,5 +17,10 @@
         <file alias="texture_view.vert">shaders/texture_view.vert</file>
         <file alias="blit.vert">shaders/blit.vert</file>
         <file alias="blit.frag">shaders/blit.frag</file>
+        <file alias="deferred_shading.frag">shaders/deferred_shading.frag</file>
+        <file alias="deferred_shading.vert">shaders/deferred_shading.vert</file>
+        <file alias="geometry_pass.frag">shaders/gpass.frag</file>
+        <file alias="geometry_pass.vert">shaders/gpass.vert</file>
     </qresource>
+    <qresource prefix="/"/>
 </RCC>
