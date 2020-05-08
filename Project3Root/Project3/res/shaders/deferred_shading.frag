@@ -65,13 +65,13 @@ void main(void)
         // Blin = Halfway direction between CameraVector and Light Direction
         vec3 BlinVec = normalize(camVec + ldir);
         // Shininess factor needs to be passed from Material, not just 16.
-        //float k_s = pow(max(dot(camVec, BlinVec), 0.), 16.);
+        float k_s = pow(max(dot(N, BlinVec), 0.), 2.);
 
         // Phong = Get ldir that reflects off of Normal of the Point
         vec3 PhongVec = normalize(reflect(ldir, N));
-        float k_s = pow(max(dot(camVec, PhongVec), 0.), 16.);
+        //float k_s = pow(max(dot(camVec, PhongVec), 0.), 16.);
 
-        finalCol.rgb += albedo.rgb * albedoSpec.a * k_s * lightColor[i].rgb;
+        finalCol.rgb += albedoSpec.rgb * lightColor[i].rgb * (albedoSpec.a * k_s);
 
     }
 
