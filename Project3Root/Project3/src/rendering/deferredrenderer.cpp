@@ -169,10 +169,7 @@ void DeferredRenderer::render(Camera *camera)
 
     // Clear color
     gl->glClearDepth(1.0);
-    gl->glClearColor(miscSettings->backgroundColor.redF(),
-                     miscSettings->backgroundColor.greenF(),
-                     miscSettings->backgroundColor.blueF(),
-                     1.0);
+
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Passes
@@ -342,7 +339,11 @@ void DeferredRenderer::passLighting()
                 program.setUniformValue("lightType", (GLint)light->type);
                 program.setUniformValue("lightRange", light->range);
 
-                QVector3D lCol = QVector3D(light->color.redF(), light->color.greenF(), light->color.blueF()) * light->intensity/5.f;
+                program.setUniformValue("Kc", light->kc);
+                program.setUniformValue("Kl", light->kl);
+                program.setUniformValue("Kq", light->kq);
+
+                QVector3D lCol = QVector3D(light->color.redF(), light->color.greenF(), light->color.blueF()) * light->intensity;
                 program.setUniformValue("lightColor", lCol);
 
                 // Draw Light onto the Buffers

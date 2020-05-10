@@ -24,6 +24,10 @@ uniform vec3 lightPosition;
 uniform vec3 lightDirection;
 uniform vec3 lightColor;
 uniform float lightRange;
+uniform float Kc;
+uniform float Kl;
+uniform float Kq;
+
 uniform vec3 camPos;
 
 uniform sampler2D gboPosition;
@@ -33,7 +37,8 @@ uniform sampler2D gboAlbedoSpec;
 out vec4 outColor;
 in vec2 texCoord;
 
-#define AMBIENT .05
+#define AMBIENT .5
+#define MIN (8. / 256.)
 
 void main(void)
 {
@@ -43,10 +48,11 @@ void main(void)
     // Calculate Attenuation
     // https://learnopengl.com/Lighting/Light-casters
     float dist = length(rPos - lightPosition);
-    //float att = 1. / (1. + dist * Kl + Kq*pow(dist, 2));
-
-    //if( att < .01)
-        //discard;
+    float att = 1. / (Kc + dist * Kl + Kq*pow(dist, 2));
+    float light_max = max(max(lightColor.r, lightColor.g), lightColor.b);
+    float min_dist = (sqrt(pow(Kl,2.) - 4.*Kq*((-1./MIN)* light_max) + Kc)-Kl) / (2.*Kq);
+    if( dist > min_dist)
+        discard;
 
     vec3 N = texture(gboNormal, texCoord).rgb;
     vec4 albedoSpec = texture(gboAlbedoSpec, texCoord).rgba;
@@ -80,5 +86,5 @@ void main(void)
 
     finalCol.rgb += albedoSpec.rgb * lightColor.rgb * (albedoSpec.a * k_s);
 
-    outColor = vec4(finalCol.rgb,1.);
+    outColor = vec4(finalCol.rgb,1.) * att;
 }

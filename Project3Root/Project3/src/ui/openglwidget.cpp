@@ -86,7 +86,7 @@ void OpenGLWidget::initializeGL()
     gl->glDisable(GL_BLEND);
 
     gl->glBlendEquation(GL_FUNC_ADD);
-    gl->glBlendFunc(GL_SRC_ALPHA , GL_DST_ALPHA);
+    gl->glBlendFunc(GL_ONE , GL_ONE);
 
     // Backface culling and z-test
     gl->glEnable(GL_CULL_FACE);

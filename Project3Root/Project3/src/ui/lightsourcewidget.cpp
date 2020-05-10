@@ -46,11 +46,46 @@ LightSourceWidget::LightSourceWidget(QWidget *parent) : QWidget(parent)
     spinRange->setValue(1.0);
     vlayout->addRow(labelRange, spinRange);
 
+    auto labelAttenuation = new QLabel("ATTENUATION CONSTANTS");
+    labelRange->setMinimumSize(QSize(70, 10));
+    vlayout->addRow(labelAttenuation);
+
+    auto labelFixedK = new QLabel("Fixed Falloff");
+    labelFixedK->setMinimumSize(QSize(70, 10));
+    spinFixedK = new QDoubleSpinBox();
+    spinFixedK->setMinimum(0.0);
+    spinFixedK->setMaximum(10000.0);
+    spinFixedK->setDecimals(5);
+    spinFixedK->setValue(1.0);
+    vlayout->addRow(labelFixedK, spinFixedK);
+
+    auto labelLinearK = new QLabel("Linear Falloff");
+    labelLinearK->setMinimumSize(QSize(70, 10));
+    spinLinearK = new QDoubleSpinBox();
+    spinLinearK->setMinimum(0.0);
+    spinLinearK->setMaximum(10.0);
+    spinLinearK->setDecimals(5);
+    spinLinearK->setValue(.0045);
+    vlayout->addRow(labelLinearK, spinLinearK);
+
+    auto labelQuadraticK = new QLabel("Quadratic Falloff");
+    labelQuadraticK->setMinimumSize(QSize(70, 10));
+    spinQuadraticK = new QDoubleSpinBox();
+    spinQuadraticK->setMinimum(0.0);
+    spinQuadraticK->setMaximum(100.0);
+    spinQuadraticK->setDecimals(5);
+    spinQuadraticK->setValue(.0075);
+    vlayout->addRow(labelQuadraticK, spinQuadraticK);
+
     setLayout(vlayout);
 
     connect(comboType, SIGNAL(currentIndexChanged(int)), this, SLOT(onTypeChanged(int)));
     connect(spinIntensity, SIGNAL(valueChanged(double)), this, SLOT(onIntensityChanged(double)));
-    connect(spinRange, SIGNAL(valueChanged(double)), this, SLOT(onRangeChanged(double)));
+    connect(spinFixedK, SIGNAL(valueChanged(double)), this, SLOT(onRangeChanged(double)));
+    connect(spinRange, SIGNAL(valueChanged(double)), this, SLOT(onFixedKChanged(double)));
+    connect(spinLinearK, SIGNAL(valueChanged(double)), this, SLOT(onLinearKChanged(double)));
+    connect(spinQuadraticK, SIGNAL(valueChanged(double)), this, SLOT(onQuadraticKChanged(double)));
+
     connect(buttonColor, SIGNAL(clicked()), this, SLOT(onColorButtonClicked()));
 }
 
@@ -88,6 +123,23 @@ void LightSourceWidget::onIntensityChanged(double val)
 void LightSourceWidget::onRangeChanged(double val)
 {
     lightSource->range = val;
+    emit componentChanged(lightSource);
+}
+
+void LightSourceWidget::onFixedKChanged(double val)
+{
+    lightSource->kc = val;
+    emit componentChanged(lightSource);
+}
+
+void LightSourceWidget::onLinearKChanged(double val)
+{
+    lightSource->kl = val;
+    emit componentChanged(lightSource);
+}
+void LightSourceWidget::onQuadraticKChanged(double val)
+{
+    lightSource->kq = val;
     emit componentChanged(lightSource);
 }
 
