@@ -33,9 +33,8 @@ uniform vec3 camPos;
 uniform sampler2D gboPosition;
 uniform sampler2D gboNormal;
 uniform sampler2D gboAlbedoSpec;
-
+uniform vec2 ViewPort;
 out vec4 outColor;
-in vec2 texCoord;
 
 #define AMBIENT .5
 #define MIN (8. / 256.)
@@ -43,6 +42,7 @@ in vec2 texCoord;
 void main(void)
 {
     // Prep vals
+    vec2 texCoord = gl_FragCoord.xy / ViewPort;
     vec3 rPos = texture(gboPosition, texCoord).rgb;
 
     // Calculate Attenuation
