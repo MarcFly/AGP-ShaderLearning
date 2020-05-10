@@ -15,6 +15,8 @@
 #include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
 
+// https://learnopengl.com/Advanced-Lighting/Deferred-Shading
+
 DeferredRenderer::DeferredRenderer() :
     fboColor(QOpenGLTexture::Target2D),
     fboDepth(QOpenGLTexture::Target2D),
@@ -35,6 +37,7 @@ DeferredRenderer::DeferredRenderer() :
 DeferredRenderer::~DeferredRenderer()
 {
     delete fbo;
+    delete gbo;
 }
 
 void DeferredRenderer::initialize()
@@ -65,12 +68,18 @@ void DeferredRenderer::initialize()
     // Create the main FBO
     fbo = new FramebufferObject;
     fbo->create();
+
+    gbo = new FramebufferObject;
+    gbo->create();
 }
 
 void DeferredRenderer::finalize()
 {
     fbo->destroy();
     delete fbo;
+
+    gbo->destroy();
+    delete gbo;
 }
 
 void DeferredRenderer::resize(int w, int h)
@@ -136,17 +145,19 @@ void DeferredRenderer::resize(int w, int h)
     // Here we are attaching all needed textures
     // This should be faster but more expensive in memory
     fbo->addColorAttachment(0, fboColor);
-    fbo->addColorAttachment(1, gboPosition);
-    fbo->addColorAttachment(2, gboNormal);
-    fbo->addColorAttachment(3, gboAlbedoSpec);
     fbo->addDepthAttachment(fboDepth);
-
-    // Signal which COLOR attachments we are using in this framebuffer
-    unsigned int attachments[4] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,GL_COLOR_ATTACHMENT2,GL_COLOR_ATTACHMENT3};
-    gl->glDrawBuffers(4, attachments);
-
     fbo->checkStatus();
     fbo->release();
+
+    gbo->bind();
+    gbo->addColorAttachment(0, gboPosition);
+    gbo->addColorAttachment(1, gboNormal);
+    gbo->addColorAttachment(2, gboAlbedoSpec);
+    gbo->addDepthAttachment(fboDepth);
+    unsigned int attachments[3] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2};
+    gl->glDrawBuffers(3, attachments);
+    gbo->checkStatus();
+    gbo->release();
 }
 
 void DeferredRenderer::render(Camera *camera)
@@ -154,7 +165,7 @@ void DeferredRenderer::render(Camera *camera)
     OpenGLErrorGuard guard("DeferredRenderer::render()");
 
     // Bind the framebuffer used to do the computations
-    fbo->bind();
+    gbo->bind();
 
     // Clear color
     gl->glClearDepth(1.0);
@@ -167,8 +178,9 @@ void DeferredRenderer::render(Camera *camera)
     // Passes
     passMeshes(camera);
 
+    fbo->bind();
+    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     passLighting();
-
     fbo->release();
 
     gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -181,6 +193,19 @@ void DeferredRenderer::passMeshes(Camera *camera)
 
     if(program.bind())
     {
+
+        program.setUniformValue("gboPosition", 0);
+        gl->glActiveTexture(GL_TEXTURE0);
+        gl->glBindTexture(GL_TEXTURE_2D, gboPosition);
+
+        program.setUniformValue("gboNormal", 1);
+        gl->glActiveTexture(GL_TEXTURE1);
+        gl->glBindTexture(GL_TEXTURE_2D, gboNormal);
+
+        program.setUniformValue("gboAlbedoSpec", 2);
+        gl->glActiveTexture(GL_TEXTURE2);
+        gl->glBindTexture(GL_TEXTURE_2D, gboAlbedoSpec);
+
         program.setUniformValue("viewMatrix", camera->viewMatrix);
         program.setUniformValue("projectionMatrix", camera->projectionMatrix);
 
@@ -281,74 +306,54 @@ void DeferredRenderer::passMeshes(Camera *camera)
     }
 }
 
-static void sendLightsToProgram(QOpenGLShaderProgram &program)
-{
-    QVector<int> lightType;
-    QVector<QVector3D> lightPosition;
-    QVector<QVector3D> lightDirection;
-    QVector<QVector3D> lightColor;
-    for (auto entity : scene->entities)
-    {
-        if (entity->active && entity->lightSource != nullptr)
-        {
-            auto light = entity->lightSource;
-            lightType.push_back(int(light->type));
-            // Light Data in Camera Space
-            //lightPosition.push_back(QVector3D(viewMatrix * entity->transform->matrix() * QVector4D(0.0, 0.0, 0.0, 1.0)));
-            //lightDirection.push_back(QVector3D(viewMatrix * entity->transform->matrix() * QVector4D(0.0, 1.0, 0.0, 0.0)));
-
-            // Light Data in World Space
-            lightPosition.push_back(QVector3D(entity->transform->matrix() * QVector4D(0.0, 0.0, 0.0, 1.0)));
-            lightDirection.push_back(QVector3D(entity->transform->matrix() * QVector4D(0.0, 1.0, 0.0, 0.0)));
-
-            QVector3D color(light->color.redF(), light->color.greenF(), light->color.blueF());
-            lightColor.push_back(color * light->intensity);
-        }
-    }
-    if (lightPosition.size() > 0)
-    {
-        program.setUniformValueArray("lightType", &lightType[0], lightType.size());
-        program.setUniformValueArray("lightPosition", &lightPosition[0], lightPosition.size());
-        program.setUniformValueArray("lightDirection", &lightDirection[0], lightDirection.size());
-        program.setUniformValueArray("lightColor", &lightColor[0], lightColor.size());
-
-
-    }
-    program.setUniformValue("lightCount", lightPosition.size());
-
-    // Send Camera Position
-    program.setUniformValue("camPos", camera->position);
-}
-
 void DeferredRenderer::passLighting()
 {
     if(shownTexture() != "Final Render")
         return;
 
-    gl->glDisable(GL_DEPTH_TEST);
     QOpenGLShaderProgram &program = deferredProgram->program;
+
+    gl->glDisable(GL_DEPTH_TEST);
+    gl->glEnable(GL_BLEND);
 
     if(program.bind())
     {
-        sendLightsToProgram(program);
-        program.setUniformValue("colorTexture", 0);
+        program.setUniformValue("gboPosition", 0);
         gl->glActiveTexture(GL_TEXTURE0);
-        gl->glBindTexture(GL_TEXTURE_2D, fboColor);
-
-        program.setUniformValue("gboPosition", 1);
-        gl->glActiveTexture(GL_TEXTURE1);
         gl->glBindTexture(GL_TEXTURE_2D, gboPosition);
 
-        program.setUniformValue("gboNormal", 2);
-        gl->glActiveTexture(GL_TEXTURE2);
+        program.setUniformValue("gboNormal", 1);
+        gl->glActiveTexture(GL_TEXTURE1);
         gl->glBindTexture(GL_TEXTURE_2D, gboNormal);
 
-        program.setUniformValue("gboAlbedoSpec", 3);
-        gl->glActiveTexture(GL_TEXTURE3);
+        program.setUniformValue("gboAlbedoSpec", 2);
+        gl->glActiveTexture(GL_TEXTURE2);
         gl->glBindTexture(GL_TEXTURE_2D, gboAlbedoSpec);
 
-        resourceManager->quad->submeshes[0]->draw();
+        // Get all light indices
+        for(auto entity : scene->entities)
+        {
+            if (entity->active && entity->lightSource != nullptr)
+            {
+                auto light = entity->lightSource;
+                program.setUniformValue("lightPosition", QVector3D(entity->transform->matrix() * QVector4D(0.0, 0.0, 0.0, 1.0)));
+                program.setUniformValue("lightDirection", QVector3D(entity->transform->matrix() * QVector4D(0.0, 1.0, 0.0, 0.0)));
+
+                program.setUniformValue("lightType", (GLint)light->type);
+                program.setUniformValue("lightRange", light->range);
+
+                QVector3D lCol = QVector3D(light->color.redF(), light->color.greenF(), light->color.blueF()) * light->intensity/5.f;
+                program.setUniformValue("lightColor", lCol);
+
+                // Draw Light onto the Buffers
+                resourceManager->quad->submeshes[0]->draw();
+            }
+        }
+
     }
+
+    gl->glDisable(GL_BLEND);
+    gl->glEnable(GL_DEPTH_TEST);
 }
 
 void DeferredRenderer::passBlit()

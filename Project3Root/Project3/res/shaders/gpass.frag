@@ -1,8 +1,8 @@
 #version 330 core
 
-layout (location = 1) out vec3 gboPosition;
-layout (location = 2) out vec3 gboNormal;
-layout (location = 3) out vec4 gboAlbedoSpec;
+layout (location = 0) out vec3 gboPosition;
+layout (location = 1) out vec3 gboNormal;
+layout (location = 2) out vec4 gboAlbedoSpec;
 
 in vec2 vTexCoords;
 in vec3 vNormal;

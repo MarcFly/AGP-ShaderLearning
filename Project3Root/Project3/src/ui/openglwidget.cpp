@@ -82,11 +82,16 @@ void OpenGLWidget::initializeGL()
     // Handle context destructions
     connect(context(), SIGNAL(aboutToBeDestroyed()), this, SLOT(finalizeGL()));
 
+    // Enable Blending of Buffers
+    gl->glDisable(GL_BLEND);
+
+    gl->glBlendEquation(GL_FUNC_ADD);
+    gl->glBlendFunc(GL_SRC_ALPHA , GL_DST_ALPHA);
+
     // Backface culling and z-test
     gl->glEnable(GL_CULL_FACE);
     gl->glCullFace(GL_BACK);
     gl->glEnable(GL_DEPTH_TEST);
-    gl->glDisable(GL_BLEND);
 
     renderer->initialize();
 }
