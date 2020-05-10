@@ -312,6 +312,7 @@ void DeferredRenderer::passLighting()
 
     gl->glDisable(GL_DEPTH_TEST);
     gl->glEnable(GL_BLEND);
+    gl->glCullFace(GL_FRONT);
 
     if(program.bind())
     {
@@ -327,6 +328,7 @@ void DeferredRenderer::passLighting()
         gl->glActiveTexture(GL_TEXTURE2);
         gl->glBindTexture(GL_TEXTURE_2D, gboAlbedoSpec);
 
+        program.setUniformValue("ViewPort", QVector2D(camera->viewportWidth, camera->viewportHeight));
         // Get all light indices
         for(auto entity : scene->entities)
         {
@@ -347,12 +349,36 @@ void DeferredRenderer::passLighting()
                 program.setUniformValue("lightColor", lCol);
 
                 // Draw Light onto the Buffers
-                resourceManager->quad->submeshes[0]->draw();
+                if(light->type == LightSource::Type::Point)
+                {
+                    QMatrix4x4 worldMatrix = entity->transform->matrix();
+                    float light_max = std::fmaxf(std::fmaxf(lCol.x(), lCol.y()), lCol.z());
+                    float r = (std::sqrtf(std::pow(light->kl,2.) - 4.*light->kq*((-256.f / 8.f)* light_max) + light->kc)-light->kl) / (2.*light->kq);
+
+                    QMatrix4x4 scaleMatrix; scaleMatrix.scale(r, r, r);
+                    QMatrix4x4 worldViewMatrix = camera->viewMatrix * worldMatrix * scaleMatrix;
+
+                    program.setUniformValue("worldViewMatrix", worldViewMatrix);
+                    program.setUniformValue("projectionMatrix", camera->projectionMatrix);
+
+                    resourceManager->sphere->submeshes[0]->draw();
+                    for (auto submesh : resourceManager->sphere->submeshes)
+                        submesh->draw();
+                }
+                else if(light->type == LightSource::Type::Directional)
+                {
+                   program.setUniformValue("worldViewMatrix", QMatrix4x4());
+                   program.setUniformValue("projectionMatrix", QMatrix4x4());
+
+                   resourceManager->quad->submeshes[0]->draw();
+
+                }
             }
         }
 
     }
 
+    gl->glCullFace(GL_BACK);
     gl->glDisable(GL_BLEND);
     gl->glEnable(GL_DEPTH_TEST);
 }
