@@ -57,6 +57,7 @@ LightSourceWidget::LightSourceWidget(QWidget *parent) : QWidget(parent)
     spinFixedK->setMaximum(10000.0);
     spinFixedK->setDecimals(5);
     spinFixedK->setValue(1.0);
+    spinFixedK->setSingleStep(.05);
     vlayout->addRow(labelFixedK, spinFixedK);
 
     auto labelLinearK = new QLabel("Linear Falloff");
@@ -66,6 +67,7 @@ LightSourceWidget::LightSourceWidget(QWidget *parent) : QWidget(parent)
     spinLinearK->setMaximum(10.0);
     spinLinearK->setDecimals(5);
     spinLinearK->setValue(.0045);
+    spinLinearK->setSingleStep(.001);
     vlayout->addRow(labelLinearK, spinLinearK);
 
     auto labelQuadraticK = new QLabel("Quadratic Falloff");
@@ -75,6 +77,7 @@ LightSourceWidget::LightSourceWidget(QWidget *parent) : QWidget(parent)
     spinQuadraticK->setMaximum(100.0);
     spinQuadraticK->setDecimals(5);
     spinQuadraticK->setValue(.0075);
+    spinQuadraticK->setSingleStep(.001);
     vlayout->addRow(labelQuadraticK, spinQuadraticK);
 
     setLayout(vlayout);
