@@ -327,6 +327,7 @@ void DeferredRenderer::passLighting()
         gl->glActiveTexture(GL_TEXTURE2);
         gl->glBindTexture(GL_TEXTURE_2D, gboAlbedoSpec);
 
+        program.setUniformValue("ViewPort", QVector2D(camera->viewportWidth, camera->viewportHeight));
         // Get all light indices
         for(auto entity : scene->entities)
         {
@@ -347,7 +348,20 @@ void DeferredRenderer::passLighting()
                 program.setUniformValue("lightColor", lCol);
 
                 // Draw Light onto the Buffers
-                resourceManager->quad->submeshes[0]->draw();
+                QMatrix4x4 worldMatrix = entity->transform->matrix();
+                float light_max = std::fmaxf(std::fmaxf(lCol.x(), lCol.y()), lCol.z());
+                float r = (std::sqrtf(std::pow(light->kl,2.) - 4.*light->kq*((-256.f / 8.f)* light_max) + light->kc)-light->kl) / (2.*light->kq);
+
+                QMatrix4x4 scaleMatrix; scaleMatrix.scale(r, r, r);
+                QMatrix4x4 worldViewMatrix = camera->viewMatrix * worldMatrix * scaleMatrix;
+
+                program.setUniformValue("worldMatrix", worldMatrix);
+                program.setUniformValue("worldViewMatrix", worldViewMatrix);
+                program.setUniformValue("projectionMatrix", camera->projectionMatrix);
+
+                for (auto submesh : resourceManager->sphere->submeshes)
+                    submesh->draw();
+
             }
         }
 

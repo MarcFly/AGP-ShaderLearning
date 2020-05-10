@@ -47,13 +47,8 @@ void main(void)
 
     // Calculate Attenuation
     // https://learnopengl.com/Lighting/Light-casters
-    float dist = length(rPos - lightPosition);
-    float att = 1. / (Kc + dist * Kl + Kq*pow(dist, 2));
-    float light_max = max(max(lightColor.r, lightColor.g), lightColor.b);
-    float min_dist = (sqrt(pow(Kl,2.) - 4.*Kq*((-1./MIN)* light_max) + Kc)-Kl) / (2.*Kq);
-    if( dist > min_dist)
-        discard;
-
+    float dist = distance(lightPosition, rPos);
+    float attenuation = 1. / (Kq*pow(dist, 2.) + Kl*dist + Kc);
     vec3 N = texture(gboNormal, texCoord).rgb;
     vec4 albedoSpec = texture(gboAlbedoSpec, texCoord).rgba;
 
@@ -68,7 +63,7 @@ void main(void)
     vec3 ldir = lightDirection;
     if(lightType == 0)
         ldir = rPos - lightPosition;
-    ldir = normalize((-1.) * ldir);
+    ldir = normalize(-ldir);
 
     // Our definition of Diffuse, is basically what is realyl called Lambertian Reflection
     float k_d = max(dot(ldir,N), 0.);
@@ -86,5 +81,5 @@ void main(void)
 
     finalCol.rgb += albedoSpec.rgb * lightColor.rgb * (albedoSpec.a * k_s);
 
-    outColor = vec4(finalCol.rgb,1.) * att;
+    outColor = vec4(finalCol.rgb,1.) * attenuation;
 }
