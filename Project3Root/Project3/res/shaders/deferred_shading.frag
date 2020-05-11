@@ -56,7 +56,6 @@ void main(void)
     vec3 camVec = normalize(rPos - camPos);
 
     // TODO: Local illumination
-    // Ambient
     // Diffuse - Lambertian
     // Specular - Fresnel, the more parallel the viewer is to a surface, more reflective it becomes
     vec3 finalCol = albedoSpec.rgb * AMBIENT;
