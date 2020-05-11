@@ -82,12 +82,8 @@ void DeferredRenderer::finalize()
     delete gbo;
 }
 
-void DeferredRenderer::resize(int w, int h)
+void DeferredRenderer::fboPrep(int w, int h)
 {
-    OpenGLErrorGuard guard("DeferredRenderer::resize()");
-
-    // Regenerate Render Targets
-
     // Main Render Targets (Color and Depth)
     if (fboColor == 0) gl->glDeleteTextures(1, &fboColor);
     gl->glGenTextures(1, &fboColor);
@@ -108,6 +104,19 @@ void DeferredRenderer::resize(int w, int h)
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, w, h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+
+    // Attach textures to the FBO
+    fbo->bind();
+    // Here we are attaching all needed textures
+    // This should be faster but more expensive in memory
+    fbo->addColorAttachment(0, fboColor);
+    fbo->addDepthAttachment(fboDepth);
+    fbo->checkStatus();
+    fbo->release();
+}
+
+void DeferredRenderer::gboPrep(int w, int h)
+{
 
     // Custom Render Targets for GPass
     if (gboPosition == 0) gl->glDeleteTextures(1, &gboPosition);
@@ -140,14 +149,7 @@ void DeferredRenderer::resize(int w, int h)
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
 
-    // Attach textures to the FBO
-    fbo->bind();
-    // Here we are attaching all needed textures
-    // This should be faster but more expensive in memory
-    fbo->addColorAttachment(0, fboColor);
-    fbo->addDepthAttachment(fboDepth);
-    fbo->checkStatus();
-    fbo->release();
+
 
     gbo->bind();
     gbo->addColorAttachment(0, gboPosition);
@@ -158,6 +160,18 @@ void DeferredRenderer::resize(int w, int h)
     gl->glDrawBuffers(3, attachments);
     gbo->checkStatus();
     gbo->release();
+
+}
+
+
+
+void DeferredRenderer::resize(int w, int h)
+{
+    OpenGLErrorGuard guard("DeferredRenderer::resize()");
+
+    fboPrep(w,h);
+    gboPrep(w,h);
+
 }
 
 void DeferredRenderer::render(Camera *camera)
@@ -340,22 +354,21 @@ void DeferredRenderer::passLighting()
 
                 program.setUniformValue("lightType", (GLint)light->type);
                 program.setUniformValue("lightRange", light->range);
-
+                program.setUniformValue("lightIntensity", light->intensity);
                 program.setUniformValue("Kc", light->kc);
                 program.setUniformValue("Kl", light->kl);
                 program.setUniformValue("Kq", light->kq);
 
-                QVector3D lCol = QVector3D(light->color.redF(), light->color.greenF(), light->color.blueF()) * light->intensity;
-                program.setUniformValue("lightColor", lCol);
+                program.setUniformValue("lightColor", QVector3D(light->color.redF(), light->color.greenF(), light->color.blueF()));
 
                 // Draw Light onto the Buffers
                 if(light->type == LightSource::Type::Point)
                 {
                     QMatrix4x4 worldMatrix = entity->transform->matrix();
-                    float light_max = std::fmaxf(std::fmaxf(lCol.x(), lCol.y()), lCol.z());
-                    float r = (std::sqrtf(std::pow(light->kl,2.) - 4.*light->kq*((-256.f / 8.f)* light_max) + light->kc)-light->kl) / (2.*light->kq);
 
-                    QMatrix4x4 scaleMatrix; scaleMatrix.scale(r, r, r);
+                    QMatrix4x4 scaleMatrix;
+                    float rScale = light->range * 2.;
+                    scaleMatrix.scale(rScale,rScale,rScale);
                     QMatrix4x4 worldViewMatrix = camera->viewMatrix * worldMatrix * scaleMatrix;
 
                     program.setUniformValue("worldViewMatrix", worldViewMatrix);
