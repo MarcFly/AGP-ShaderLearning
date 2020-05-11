@@ -340,22 +340,21 @@ void DeferredRenderer::passLighting()
 
                 program.setUniformValue("lightType", (GLint)light->type);
                 program.setUniformValue("lightRange", light->range);
-
+                program.setUniformValue("lightIntensity", light->intensity);
                 program.setUniformValue("Kc", light->kc);
                 program.setUniformValue("Kl", light->kl);
                 program.setUniformValue("Kq", light->kq);
 
-                QVector3D lCol = QVector3D(light->color.redF(), light->color.greenF(), light->color.blueF()) * light->intensity;
-                program.setUniformValue("lightColor", lCol);
+                program.setUniformValue("lightColor", QVector3D(light->color.redF(), light->color.greenF(), light->color.blueF()));
 
                 // Draw Light onto the Buffers
                 if(light->type == LightSource::Type::Point)
                 {
                     QMatrix4x4 worldMatrix = entity->transform->matrix();
-                    float light_max = std::fmaxf(std::fmaxf(lCol.x(), lCol.y()), lCol.z());
-                    float r = (std::sqrtf(std::pow(light->kl,2.) - 4.*light->kq*((-256.f / 8.f)* light_max) + light->kc)-light->kl) / (2.*light->kq);
 
-                    QMatrix4x4 scaleMatrix; scaleMatrix.scale(r, r, r);
+                    QMatrix4x4 scaleMatrix;
+                    float rScale = light->range * 2.;
+                    scaleMatrix.scale(rScale,rScale,rScale);
                     QMatrix4x4 worldViewMatrix = camera->viewMatrix * worldMatrix * scaleMatrix;
 
                     program.setUniformValue("worldViewMatrix", worldViewMatrix);

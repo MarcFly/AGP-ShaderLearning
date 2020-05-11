@@ -23,6 +23,7 @@ uniform int lightType;
 uniform vec3 lightPosition;
 uniform vec3 lightDirection;
 uniform vec3 lightColor;
+uniform float lightIntensity;
 uniform float lightRange;
 uniform float Kc;
 uniform float Kl;
@@ -81,5 +82,5 @@ void main(void)
 
     finalCol.rgb += albedoSpec.rgb * lightColor.rgb * (albedoSpec.a * k_s);
 
-    outColor = vec4(finalCol.rgb,1.) * attenuation;
+    outColor = vec4(finalCol.rgb,1.) * lightIntensity * attenuation;
 }
