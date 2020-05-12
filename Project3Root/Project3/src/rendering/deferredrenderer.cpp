@@ -25,6 +25,8 @@ DeferredRenderer::DeferredRenderer() :
     gboNormal(QOpenGLTexture::Target2D)
 {
     fbo = nullptr;
+    gbo = nullptr;
+    lbo = nullptr;
 
     // List of Textures
     addTexture("Final Render");
@@ -32,12 +34,15 @@ DeferredRenderer::DeferredRenderer() :
     addTexture("Normals");
     addTexture("AlbedoSpec");
     addTexture("Depth");
+    addTexture("Ambient");
+    addTexture("LightSpheres");
 }
 
 DeferredRenderer::~DeferredRenderer()
 {
     delete fbo;
     delete gbo;
+    delete lbo;
 }
 
 void DeferredRenderer::initialize()
@@ -65,12 +70,22 @@ void DeferredRenderer::initialize()
     blitProgram->fragmentShaderFilename = "res/shaders/blit.frag";
     blitProgram->includeForSerialization = false;
 
+    // Debug Light Program, Draw white diffuminated by expected attenuation to get a sense of what the lights are doing
+    debugSpheres = resourceManager->createShaderProgram();
+    debugSpheres->name = "DebugLights";
+    debugSpheres->vertexShaderFilename = "res/shaders/deferred_shading.vert";
+    debugSpheres->fragmentShaderFilename = "res/shaders/debug_light.frag";
+    debugSpheres->includeForSerialization = false;
+
     // Create the main FBO
     fbo = new FramebufferObject;
     fbo->create();
 
     gbo = new FramebufferObject;
     gbo->create();
+
+    lbo = new FramebufferObject;
+    lbo->create();
 }
 
 void DeferredRenderer::finalize()
@@ -80,6 +95,9 @@ void DeferredRenderer::finalize()
 
     gbo->destroy();
     delete gbo;
+
+    lbo->destroy();
+    delete lbo;
 }
 
 void DeferredRenderer::fboPrep(int w, int h)
@@ -149,20 +167,50 @@ void DeferredRenderer::gboPrep(int w, int h)
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
 
-
+    if (fboAmbient == 0) gl->glDeleteTextures(1, &fboAmbient);
+    gl->glGenTextures(1, &fboAmbient);
+    gl->glBindTexture(GL_TEXTURE_2D, fboAmbient);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
 
     gbo->bind();
-    gbo->addColorAttachment(0, gboPosition);
-    gbo->addColorAttachment(1, gboNormal);
-    gbo->addColorAttachment(2, gboAlbedoSpec);
+    gbo->addColorAttachment(0, fboColor);
+    gbo->addColorAttachment(1, gboPosition);
+    gbo->addColorAttachment(2, gboNormal);
+    gbo->addColorAttachment(3, gboAlbedoSpec);
+    gbo->addColorAttachment(4, fboAmbient);
     gbo->addDepthAttachment(fboDepth);
-    unsigned int attachments[3] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2};
-    gl->glDrawBuffers(3, attachments);
+    unsigned int attachments[5] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4};
+    gl->glDrawBuffers(5, attachments);
     gbo->checkStatus();
     gbo->release();
 
 }
 
+void DeferredRenderer::lboPrep(int w, int h)
+{
+
+    if (lightSpheres == 0) gl->glDeleteTextures(1, &lightSpheres);
+    gl->glGenTextures(1, &lightSpheres);
+    gl->glBindTexture(GL_TEXTURE_2D, lightSpheres);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+    lbo->bind();
+    lbo->addColorAttachment(0, lightSpheres);
+    lbo->addDepthAttachment(fboDepth);
+    lbo->checkStatus();
+    lbo->release();
+
+}
 
 
 void DeferredRenderer::resize(int w, int h)
@@ -171,6 +219,9 @@ void DeferredRenderer::resize(int w, int h)
 
     fboPrep(w,h);
     gboPrep(w,h);
+
+    // Debug Preps
+    lboPrep(w, h);
 
 }
 
@@ -190,9 +241,12 @@ void DeferredRenderer::render(Camera *camera)
     passMeshes(camera);
 
     fbo->bind();
-    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    //gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     passLighting();
     fbo->release();
+
+    if(shownTexture() == "LightSpheres")
+        passDebugLights();
 
     gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
@@ -205,21 +259,30 @@ void DeferredRenderer::passMeshes(Camera *camera)
     if(program.bind())
     {
 
-        program.setUniformValue("gboPosition", 0);
+        program.setUniformValue("outColor", 0);
         gl->glActiveTexture(GL_TEXTURE0);
+        gl->glBindTexture(GL_TEXTURE_2D, fboColor);
+
+        program.setUniformValue("gboPosition", 1);
+        gl->glActiveTexture(GL_TEXTURE1);
         gl->glBindTexture(GL_TEXTURE_2D, gboPosition);
 
-        program.setUniformValue("gboNormal", 1);
-        gl->glActiveTexture(GL_TEXTURE1);
+        program.setUniformValue("gboNormal", 2);
+        gl->glActiveTexture(GL_TEXTURE2);
         gl->glBindTexture(GL_TEXTURE_2D, gboNormal);
 
-        program.setUniformValue("gboAlbedoSpec", 2);
-        gl->glActiveTexture(GL_TEXTURE2);
+        program.setUniformValue("gboAlbedoSpec", 3);
+        gl->glActiveTexture(GL_TEXTURE3);
         gl->glBindTexture(GL_TEXTURE_2D, gboAlbedoSpec);
+
+        program.setUniformValue("fboAmbient", 4);
+        gl->glActiveTexture(GL_TEXTURE4);
+        gl->glBindTexture(GL_TEXTURE_2D, fboAmbient);
+
 
         program.setUniformValue("viewMatrix", camera->viewMatrix);
         program.setUniformValue("projectionMatrix", camera->projectionMatrix);
-
+        program.setUniformValue("AMBIENT", miscSettings->AMBIENT);
         QVector<MeshRenderer*> meshRenderers;
         QVector<LightSource*> lightSources;
         // Get components
@@ -240,6 +303,7 @@ void DeferredRenderer::passMeshes(Camera *camera)
             if (mesh != nullptr)
             {
                 QMatrix4x4 worldMatrix = meshRenderer->entity->transform->matrix();
+                //QMatrix4x4 scaleMatrix; scaleMatrix.scale(0.1f, 0.1f, 0.1f);
                 QMatrix4x4 worldViewMatrix = camera->viewMatrix * worldMatrix;
                 QMatrix3x3 normalMatrix = worldViewMatrix.normalMatrix();
 
@@ -319,7 +383,7 @@ void DeferredRenderer::passMeshes(Camera *camera)
 
 void DeferredRenderer::passLighting()
 {
-    if(shownTexture() != "Final Render")
+    if(shownTexture() != "Final Render" && shownTexture() != "LightSpheres")
         return;
 
     QOpenGLShaderProgram &program = deferredProgram->program;
@@ -367,7 +431,7 @@ void DeferredRenderer::passLighting()
                     QMatrix4x4 worldMatrix = entity->transform->matrix();
 
                     QMatrix4x4 scaleMatrix;
-                    float rScale = light->range * 2.;
+                    float rScale = light->range; // * 2.;
                     scaleMatrix.scale(rScale,rScale,rScale);
                     QMatrix4x4 worldViewMatrix = camera->viewMatrix * worldMatrix * scaleMatrix;
 
@@ -396,6 +460,60 @@ void DeferredRenderer::passLighting()
     gl->glEnable(GL_DEPTH_TEST);
 }
 
+void DeferredRenderer::passDebugLights()
+{
+    gl->glClear(GL_COLOR_BUFFER_BIT);
+    gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    lbo->bind();
+    gl->glClear(GL_COLOR_BUFFER_BIT);
+    gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
+    gl->glDisable(GL_DEPTH_TEST);
+    gl->glEnable(GL_BLEND);
+    gl->glDisable(GL_CULL_FACE);
+
+    QOpenGLShaderProgram &program = debugSpheres->program;
+    if(program.bind())
+    {
+        for(auto entity : scene->entities)
+        {
+            if (entity->active && entity->lightSource != nullptr && entity->lightSource->type == LightSource::Type::Point)
+            {
+                auto light = entity->lightSource;
+                program.setUniformValue("lightPosition", QVector3D(entity->transform->matrix() * QVector4D(0.0, 0.0, 0.0, 1.0)));
+
+                program.setUniformValue("lightRange", light->range);
+                program.setUniformValue("lightIntensity", light->intensity);
+                program.setUniformValue("Kc", light->kc);
+                program.setUniformValue("Kl", light->kl);
+                program.setUniformValue("Kq", light->kq);
+
+                program.setUniformValue("lightColor", QVector3D(light->color.redF(), light->color.greenF(), light->color.blueF()));
+
+                QMatrix4x4 scaleMatrix;
+                float rScale = entity->lightSource->range; // * 2.;
+                scaleMatrix.scale(rScale,rScale,rScale);
+                QMatrix4x4 worldViewMatrix = camera->viewMatrix * entity->transform->matrix() * scaleMatrix;
+
+
+                program.setUniformValue("worldMatrix", entity->transform->matrix());
+                program.setUniformValue("worldViewMatrix", worldViewMatrix);
+                program.setUniformValue("projectionMatrix", camera->projectionMatrix);
+
+                resourceManager->sphere->submeshes[0]->draw();
+                for (auto submesh : resourceManager->sphere->submeshes)
+                    submesh->draw();
+            }
+        }
+    }
+
+    gl->glEnable(GL_CULL_FACE);
+    gl->glDisable(GL_BLEND);
+    gl->glEnable(GL_DEPTH_TEST);
+
+    lbo->release();
+}
+
 void DeferredRenderer::passBlit()
 {
     gl->glDisable(GL_DEPTH_TEST);
@@ -421,6 +539,12 @@ void DeferredRenderer::passBlit()
         }
         else if(shownTexture() == "AlbedoSpec"){
             gl->glBindTexture(GL_TEXTURE_2D, gboAlbedoSpec);
+        }
+        else if(shownTexture() == "Ambient"){
+            gl->glBindTexture(GL_TEXTURE_2D, fboAmbient);
+        }
+        else if(shownTexture() == "LightSpheres"){
+            gl->glBindTexture(GL_TEXTURE_2D, lightSpheres);
         }
         else {
             gl->glBindTexture(GL_TEXTURE_2D, resourceManager->texWhite->textureId());

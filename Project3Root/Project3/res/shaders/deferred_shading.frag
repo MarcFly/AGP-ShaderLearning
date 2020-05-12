@@ -1,23 +1,6 @@
 #version 330 core
 
-// Matrices
-uniform mat4 worldViewMatrix;
-uniform mat4 worldMatrix;
-uniform mat3 normalMatrix;
-
-// Material
-uniform vec4 albedo;
-uniform vec4 specular;
-uniform vec4 emissive;
-uniform float smoothness;
-uniform float bumpiness;
-uniform sampler2D albedoTexture;
-uniform sampler2D specularTexture;
-uniform sampler2D emissiveTexture;
-uniform sampler2D normalTexture;
-uniform sampler2D bumpTexture;
-
-// Lights
+// Light Data
 #define MAX_LIGHTS 8
 uniform int lightType;
 uniform vec3 lightPosition;
@@ -37,8 +20,7 @@ uniform sampler2D gboAlbedoSpec;
 uniform vec2 ViewPort;
 out vec4 outColor;
 
-#define AMBIENT .5
-#define MIN (8. / 256.)
+#define MIN (5. / 256.)
 
 void main(void)
 {
@@ -53,19 +35,24 @@ void main(void)
     vec3 N = texture(gboNormal, texCoord).rgb;
     vec4 albedoSpec = texture(gboAlbedoSpec, texCoord).rgba;
 
+
+    float cutre = smoothstep(lightRange, 0, length(rPos - lightPosition));
+    attenuation = cutre;
+
     vec3 camVec = normalize(rPos - camPos);
 
     // TODO: Local illumination
     // Diffuse - Lambertian
     // Specular - Fresnel, the more parallel the viewer is to a surface, more reflective it becomes
-    vec3 finalCol = albedoSpec.rgb * AMBIENT;
+
+    vec3 finalCol;
 
     vec3 ldir = lightDirection;
     if(lightType == 0)
         ldir = rPos - lightPosition;
     ldir = normalize(-ldir);
 
-    // Our definition of Diffuse, is basically what is realyl called Lambertian Reflection
+    // Our definition of Diffuse, is basically what is really called Lambertian Reflection
     float k_d = max(dot(ldir,N), 0.);
     finalCol.rgb += albedoSpec.rgb * k_d * lightColor.rgb;
 

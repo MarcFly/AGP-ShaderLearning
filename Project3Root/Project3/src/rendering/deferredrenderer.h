@@ -31,6 +31,8 @@ private:
     void passLighting();
     void passBlit();
 
+    void passDebugLights();
+
     // Shaders
     ShaderProgram *gpassProgram = nullptr;
     ShaderProgram *deferredProgram = nullptr;
@@ -45,16 +47,17 @@ private:
     GLuint gboNormal = 0;
 
     GLuint fboAmbient = 0;
-    GLuint fboLightPass = 0;
 
     // ONLY FOR DEBUG PURPOSES
     // ONLY WRITE TO WHEN THE TEXTURE IS SELECTED
-
+    ShaderProgram *debugSpheres = nullptr;
     GLuint lightSpheres = 0;
 
     // Framebuffers, defined for use
     FramebufferObject *fbo = nullptr; // Main FBO
     FramebufferObject *gbo = nullptr; // Geometry Pass
+
+    FramebufferObject *lbo = nullptr; // Debug for Light Spheres
 
 
 

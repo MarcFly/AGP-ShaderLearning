@@ -12,6 +12,8 @@ MiscSettingsWidget::MiscSettingsWidget(QWidget *parent) :
 
     ui->spinCameraSpeed->setValue(DEFAULT_CAMERA_SPEED);
     ui->spinFovY->setValue(DEFAULT_CAMERA_FOVY);
+    ui->spinAmbient->setSingleStep(.05);
+    ui->spinAmbient->setValue(0.5);
 
     connect(ui->spinCameraSpeed, SIGNAL(valueChanged(double)), this, SLOT(onCameraSpeedChanged(double)));
     connect(ui->spinFovY, SIGNAL(valueChanged(double)), this, SLOT(onCameraFovYChanged(double)));
@@ -19,6 +21,7 @@ MiscSettingsWidget::MiscSettingsWidget(QWidget *parent) :
     connect(ui->checkBoxGrid, SIGNAL(clicked()), this, SLOT(onVisualHintChanged()));
     connect(ui->checkBoxLightSources, SIGNAL(clicked()), this, SLOT(onVisualHintChanged()));
     connect(ui->checkBoxSelectionOutline, SIGNAL(clicked()), this, SLOT(onVisualHintChanged()));
+    connect(ui->spinAmbient, SIGNAL(valueChanged(double)), this, SLOT(onAmbientChanged(double)));
 }
 
 MiscSettingsWidget::~MiscSettingsWidget()
@@ -45,6 +48,12 @@ void MiscSettingsWidget::onMaxSubmeshesChanged(int n)
     emit settingsChanged();
 }
 
+void MiscSettingsWidget::onAmbientChanged(double val)
+{
+    miscSettings->AMBIENT = val;
+    emit settingsChanged();
+}
+
 void MiscSettingsWidget::onBackgroundColorClicked()
 {
     QColor color = QColorDialog::getColor(miscSettings->backgroundColor, this, "Background color");
@@ -53,6 +62,9 @@ void MiscSettingsWidget::onBackgroundColorClicked()
         QString colorName = color.name();
         ui->buttonBackgroundColor->setStyleSheet(QString::fromLatin1("background-color: %0").arg(colorName));
         miscSettings->backgroundColor = color;
+
+
+
         emit settingsChanged();
     }
 }
