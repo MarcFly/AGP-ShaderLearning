@@ -11,7 +11,7 @@ uniform float lightRange;
 uniform float Kc;
 uniform float Kl;
 uniform float Kq;
-
+uniform mat4 worldMatrix;
 uniform vec3 camPos;
 
 uniform sampler2D gboPosition;
@@ -22,24 +22,32 @@ out vec4 outColor;
 
 #define MIN (5. / 256.)
 
+uniform mat4 projectionMatrix;
+uniform mat4 viewMatrix;
+uniform mat4 worldViewMatrix;
+
 void main(void)
 {
-    // Prep vals
+    // Prep Values for Calc
     vec2 texCoord = gl_FragCoord.xy / ViewPort;
     vec3 rPos = texture(gboPosition, texCoord).rgb;
+    vec3 N = texture(gboNormal, texCoord).rgb;
+    vec4 albedoSpec = texture(gboAlbedoSpec, texCoord).rgba;
+    vec3 camVec = normalize(rPos - camPos);
 
     // Calculate Attenuation
     // https://learnopengl.com/Lighting/Light-casters
     float dist = distance(lightPosition, rPos);
     float attenuation = 1. / (Kq*pow(dist, 2.) + Kl*dist + Kc);
-    vec3 N = texture(gboNormal, texCoord).rgb;
-    vec4 albedoSpec = texture(gboAlbedoSpec, texCoord).rgba;
-
 
     float cutre = smoothstep(lightRange, 0, length(rPos - lightPosition));
     attenuation = cutre;
 
-    vec3 camVec = normalize(rPos - camPos);
+    vec4 glPos = vec4(gl_FragCoord.xyz / gl_FragCoord.w,1./(1./gl_FragCoord.w));
+    vec3 realPos =  (inverse(projectionMatrix) * inverse(viewMatrix) * glPos).xyz;
+
+    //attenuation = smoothstep(lightRange, 0, length(realPos - lightPosition));
+
 
     // TODO: Local illumination
     // Diffuse - Lambertian
@@ -68,5 +76,5 @@ void main(void)
 
     finalCol.rgb += albedoSpec.rgb * lightColor.rgb * (albedoSpec.a * k_s);
 
-    outColor = vec4(finalCol.rgb,1.) * lightIntensity * attenuation;
+    outColor = vec4(finalCol.rgb,1.) * lightIntensity; // * attenuation;
 }

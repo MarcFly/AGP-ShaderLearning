@@ -14,7 +14,7 @@
 #include <QVector3D>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
-
+#include <Qt3DCore/QTransform>
 // https://learnopengl.com/Advanced-Lighting/Deferred-Shading
 
 DeferredRenderer::DeferredRenderer() :
@@ -229,21 +229,22 @@ void DeferredRenderer::render(Camera *camera)
 {
     OpenGLErrorGuard guard("DeferredRenderer::render()");
 
-    // Bind the framebuffer used to do the computations
     gbo->bind();
-
     // Clear color
     gl->glClearDepth(1.0);
-
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Passes
     passMeshes(camera);
+    gbo->release();
+    gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
     fbo->bind();
-    //gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    gl->glClearDepth(1.0);
+    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     passLighting();
     fbo->release();
+    gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
     if(shownTexture() == "LightSpheres")
         passDebugLights();
@@ -303,7 +304,6 @@ void DeferredRenderer::passMeshes(Camera *camera)
             if (mesh != nullptr)
             {
                 QMatrix4x4 worldMatrix = meshRenderer->entity->transform->matrix();
-                //QMatrix4x4 scaleMatrix; scaleMatrix.scale(0.1f, 0.1f, 0.1f);
                 QMatrix4x4 worldViewMatrix = camera->viewMatrix * worldMatrix;
                 QMatrix3x3 normalMatrix = worldViewMatrix.normalMatrix();
 
@@ -431,10 +431,12 @@ void DeferredRenderer::passLighting()
                     QMatrix4x4 worldMatrix = entity->transform->matrix();
 
                     QMatrix4x4 scaleMatrix;
-                    float rScale = light->range; // * 2.;
+                    float rScale = light->range;
                     scaleMatrix.scale(rScale,rScale,rScale);
                     QMatrix4x4 worldViewMatrix = camera->viewMatrix * worldMatrix * scaleMatrix;
 
+                    program.setUniformValue("worldMatrix", worldMatrix);
+                    program.setUniformValue("viewMatrix", camera->viewMatrix);
                     program.setUniformValue("worldViewMatrix", worldViewMatrix);
                     program.setUniformValue("projectionMatrix", camera->projectionMatrix);
 
@@ -462,54 +464,9 @@ void DeferredRenderer::passLighting()
 
 void DeferredRenderer::passDebugLights()
 {
-    gl->glClear(GL_COLOR_BUFFER_BIT);
-    gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     lbo->bind();
-    gl->glClear(GL_COLOR_BUFFER_BIT);
+    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-
-    gl->glDisable(GL_DEPTH_TEST);
-    gl->glEnable(GL_BLEND);
-    gl->glDisable(GL_CULL_FACE);
-
-    QOpenGLShaderProgram &program = debugSpheres->program;
-    if(program.bind())
-    {
-        for(auto entity : scene->entities)
-        {
-            if (entity->active && entity->lightSource != nullptr && entity->lightSource->type == LightSource::Type::Point)
-            {
-                auto light = entity->lightSource;
-                program.setUniformValue("lightPosition", QVector3D(entity->transform->matrix() * QVector4D(0.0, 0.0, 0.0, 1.0)));
-
-                program.setUniformValue("lightRange", light->range);
-                program.setUniformValue("lightIntensity", light->intensity);
-                program.setUniformValue("Kc", light->kc);
-                program.setUniformValue("Kl", light->kl);
-                program.setUniformValue("Kq", light->kq);
-
-                program.setUniformValue("lightColor", QVector3D(light->color.redF(), light->color.greenF(), light->color.blueF()));
-
-                QMatrix4x4 scaleMatrix;
-                float rScale = entity->lightSource->range; // * 2.;
-                scaleMatrix.scale(rScale,rScale,rScale);
-                QMatrix4x4 worldViewMatrix = camera->viewMatrix * entity->transform->matrix() * scaleMatrix;
-
-
-                program.setUniformValue("worldMatrix", entity->transform->matrix());
-                program.setUniformValue("worldViewMatrix", worldViewMatrix);
-                program.setUniformValue("projectionMatrix", camera->projectionMatrix);
-
-                resourceManager->sphere->submeshes[0]->draw();
-                for (auto submesh : resourceManager->sphere->submeshes)
-                    submesh->draw();
-            }
-        }
-    }
-
-    gl->glEnable(GL_CULL_FACE);
-    gl->glDisable(GL_BLEND);
-    gl->glEnable(GL_DEPTH_TEST);
 
     lbo->release();
 }
