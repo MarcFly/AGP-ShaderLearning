@@ -240,8 +240,7 @@ void DeferredRenderer::render(Camera *camera)
     gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
     fbo->bind();
-    gl->glClearDepth(1.0);
-    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
     passLighting();
     fbo->release();
     gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -413,7 +412,7 @@ void DeferredRenderer::passLighting()
             if (entity->active && entity->lightSource != nullptr)
             {
                 auto light = entity->lightSource;
-                program.setUniformValue("lightPosition", QVector3D(entity->transform->matrix() * QVector4D(0.0, 0.0, 0.0, 1.0)));
+                program.setUniformValue("lightPosition", QVector3D(entity->transform->position));
                 program.setUniformValue("lightDirection", QVector3D(entity->transform->matrix() * QVector4D(0.0, 1.0, 0.0, 0.0)));
 
                 program.setUniformValue("lightType", (GLint)light->type);
@@ -440,7 +439,6 @@ void DeferredRenderer::passLighting()
                     program.setUniformValue("worldViewMatrix", worldViewMatrix);
                     program.setUniformValue("projectionMatrix", camera->projectionMatrix);
 
-                    resourceManager->sphere->submeshes[0]->draw();
                     for (auto submesh : resourceManager->sphere->submeshes)
                         submesh->draw();
                 }
