@@ -26,7 +26,9 @@ public slots:
     void onMaxSubmeshesChanged(int n);
     void onBackgroundColorClicked();
     void onVisualHintChanged();
-    void onAmbientChanged(double);
+    void onAmbientChanged(double val);
+    void onDebugLayersChanged(int val);
+    void onDepthLayersChanged(int val);
 
 private:
     Ui::MiscSettingsWidget *ui;

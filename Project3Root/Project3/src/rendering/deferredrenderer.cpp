@@ -12,7 +12,7 @@
 #include "globals.h"
 #include <QVector>
 #include <QVector3D>
-#include <QOpenGLShaderProgram>
+
 #include <QOpenGLTexture>
 #include <Qt3DCore/QTransform>
 // https://learnopengl.com/Advanced-Lighting/Deferred-Shading
@@ -36,6 +36,7 @@ DeferredRenderer::DeferredRenderer() :
     addTexture("Depth");
     addTexture("Ambient");
     addTexture("LightSpheres");
+    addTexture("DepthLayers");
 }
 
 DeferredRenderer::~DeferredRenderer()
@@ -77,6 +78,13 @@ void DeferredRenderer::initialize()
     debugSpheres->fragmentShaderFilename = "res/shaders/debug_light.frag";
     debugSpheres->includeForSerialization = false;
 
+    // Shader Program to generate depth layers
+    GenLayers = resourceManager->createShaderProgram();
+    GenLayers->name = "Depth Layers";
+    GenLayers->vertexShaderFilename = "res/shaders/SketchShaders/GenLayers.vert";
+    GenLayers->fragmentShaderFilename = "res/shaders/SketchShaders/GenLayers.frag";
+    GenLayers->includeForSerialization = false;
+
     // Create the main FBO
     fbo = new FramebufferObject;
     fbo->create();
@@ -86,6 +94,10 @@ void DeferredRenderer::initialize()
 
     lbo = new FramebufferObject;
     lbo->create();
+
+    peelBO = new FramebufferObject;
+    peelBO->create();
+
 }
 
 void DeferredRenderer::finalize()
@@ -98,6 +110,9 @@ void DeferredRenderer::finalize()
 
     lbo->destroy();
     delete lbo;
+
+    peelBO->destroy();
+    delete peelBO;
 }
 
 void DeferredRenderer::fboPrep(int w, int h)
@@ -202,13 +217,70 @@ void DeferredRenderer::lboPrep(int w, int h)
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_FLOAT, nullptr);
 
     lbo->bind();
     lbo->addColorAttachment(0, lightSpheres);
     lbo->addDepthAttachment(fboDepth);
     lbo->checkStatus();
     lbo->release();
+
+}
+
+void DeferredRenderer::sboPrep(int w, int h)
+{
+
+
+    if(miscSettings->depthLayers < 1) return;
+
+    normalLayers.resize(miscSettings->depthLayers);
+    depthLayers.resize(miscSettings->depthLayers);
+    edgeMasks.resize(miscSettings->depthLayers);
+
+    for(int i = 0; i < normalLayers.size(); ++i)
+    {
+        if (normalLayers[i] == 0) gl->glDeleteTextures(1, &normalLayers[i]);
+        gl->glGenTextures(1, &normalLayers[i]);
+        gl->glBindTexture(GL_TEXTURE_2D, normalLayers[i]);
+        gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, w, h, 0, GL_RGB, GL_FLOAT, nullptr);
+
+        if (depthLayers[i] == 0) gl->glDeleteTextures(1, &depthLayers[i]);
+        gl->glGenTextures(1, &depthLayers[i]);
+        gl->glBindTexture(GL_TEXTURE_2D, depthLayers[i]);
+        gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, w, h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+
+        if(edgeMasks[i] == 0) gl->glDeleteTextures(1, &edgeMasks[i]);
+        gl->glGenTextures(1, &edgeMasks[i]);
+        gl->glBindTexture(GL_TEXTURE_2D, edgeMasks[i]);
+        gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w, h, 0, GL_RED, GL_FLOAT, nullptr);
+    }
+
+    // We don't prepare here the fbo, it is done each time while executing the render
+
+    peelBO->bind();
+    peelBO->addColorAttachment(0, normalLayers[0]);
+    peelBO->addColorAttachment(1, depthLayers[0]);
+    peelBO->addDepthAttachment(depthLayers[0]);
+    unsigned int attachments[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+    gl->glDrawBuffers(2, attachments);
+    peelBO->checkStatus();
+    peelBO->release();
+
 
 }
 
@@ -222,6 +294,7 @@ void DeferredRenderer::resize(int w, int h)
 
     // Debug Preps
     lboPrep(w, h);
+    sboPrep(w, h);
 
 }
 
@@ -247,6 +320,9 @@ void DeferredRenderer::render(Camera *camera)
 
     if(shownTexture() == "LightSpheres")
         passDebugLights();
+
+    if(shownTexture() == "DepthLayers")
+        passMeshesForLayers(camera);
 
     gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
@@ -379,6 +455,137 @@ void DeferredRenderer::passMeshes(Camera *camera)
         program.release();
     }
 }
+void DeferredRenderer::PassNormalDepth(Camera* camera, QOpenGLShaderProgram* program)
+{
+    program->setUniformValue("viewMatrix", camera->viewMatrix);
+    program->setUniformValue("projectionMatrix", camera->projectionMatrix);
+    QVector<MeshRenderer*> meshRenderers;
+    // Get components
+    for (auto entity : scene->entities)
+    {
+        if (entity->active)
+        {
+            // TODO: Shader Controller, if it has one of the shaders selected it will be passed
+            // Only objects which have the Blueprint, sketch, edge,... should enter
+            // Add a Global that allows all objects to have a single shader for test purposes
+            if (entity->meshRenderer != nullptr) { meshRenderers.push_back(entity->meshRenderer); }
+
+        }
+    }
+
+    // Meshes
+    for (auto meshRenderer : meshRenderers)
+    {
+        auto mesh = meshRenderer->mesh;
+
+        if (mesh != nullptr)
+        {
+            QMatrix4x4 worldMatrix = meshRenderer->entity->transform->matrix();
+            QMatrix4x4 worldViewMatrix = camera->viewMatrix * worldMatrix;
+            QMatrix3x3 normalMatrix = worldViewMatrix.normalMatrix();
+
+            program->setUniformValue("worldMatrix", worldMatrix);
+            program->setUniformValue("worldViewMatrix", worldViewMatrix);
+            program->setUniformValue("normalMatrix", normalMatrix);
+
+            int materialIndex = 0;
+            for (auto submesh : mesh->submeshes)
+            {
+                // Get material from the component
+                Material *material = nullptr;
+                if (materialIndex < meshRenderer->materials.size()) {
+                    material = meshRenderer->materials[materialIndex];
+                }
+                if (material == nullptr) {
+                    material = resourceManager->materialWhite;
+                }
+                materialIndex++;
+
+#define SEND_TEXTUREP(uniformName, tex1, tex2, texUnit) \
+    program->setUniformValue(uniformName, texUnit); \
+    if (tex1 != nullptr) { \
+    tex1->bind(texUnit); \
+                } else { \
+    tex2->bind(texUnit); \
+                }
+
+                // Send the materials that may affect edges to the shader
+                program->setUniformValue("smoothness", material->smoothness);
+                program->setUniformValue("bumpiness", material->bumpiness);
+                program->setUniformValue("tiling", material->tiling);
+                SEND_TEXTUREP("normalTexture", material->normalsTexture, resourceManager->texNormal, 3);
+                SEND_TEXTUREP("bumpTexture", material->bumpTexture, resourceManager->texWhite, 4);
+
+                submesh->draw();
+            }
+        }
+    }
+
+
+}
+void DeferredRenderer::passMeshesForLayers(Camera *camera)
+{
+    if(miscSettings->depthLayers != depthLayers.size())
+        sboPrep(camera->viewportWidth, camera->viewportHeight);
+
+    QOpenGLShaderProgram&program = GenLayers->program;
+
+
+
+    gl->glClearColor(0,0,0,0);
+    gl->glClearDepth(0.0);
+    //gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+
+    if(program.bind())
+    {
+        // We always have a first calculation of normal and depth for Geometry Buffer
+        // We start at 2nd layer as we need also previous depth buffer to do comparisons
+        program.setUniformValue("ViewPort", QVector2D(camera->viewportWidth, camera->viewportHeight));
+
+        for(int i = 0; i < depthLayers.size(); ++i)
+        {
+            // Generate a masked Layer
+
+            //GLuint maskA = (i%2), maskB = (i+1) % 2;
+
+            // Pass A - Here we don't use automatic depth testign
+            // The same shader performs a Manual Depth test that is actually what you write
+            // The written depth will later be used for culling unneeded data
+
+            peelBO->bind();
+
+            peelBO->addDepthAttachment(depthLayers[i]);
+
+            program.setUniformValue("outColor", 0);
+            gl->glActiveTexture(GL_TEXTURE0);
+            gl->glBindTexture(GL_TEXTURE_2D, normalLayers[i]);
+            gl->glDepthMask(GL_FALSE);
+
+            gl->glDepthFunc(GL_GREATER);
+
+            PassNormalDepth(camera, &program);
+
+            // Pass B - Here we cull what is behind the previous depth pass
+            gl->glEnable(GL_DEPTH_TEST);
+            gl->glClearColor(0,0,0,0);
+            gl->glClear(GL_COLOR_BUFFER_BIT);
+            gl->glDepthMask(GL_TRUE);
+            gl->glDepthFunc(GL_LEQUAL);
+
+            PassNormalDepth(camera, &program);
+
+            peelBO->release();
+
+        }
+
+        program.release();
+
+    }
+
+    peelBO->release();
+    gl->glEnable(GL_CULL_FACE);
+}
 
 void DeferredRenderer::passLighting()
 {
@@ -500,6 +707,14 @@ void DeferredRenderer::passBlit()
         }
         else if(shownTexture() == "LightSpheres"){
             gl->glBindTexture(GL_TEXTURE_2D, lightSpheres);
+        }
+        // TODO Add Edge Based cases
+        else if(shownTexture() == "DepthLayers")
+        {
+            if(miscSettings->debugLayer >= miscSettings->depthLayers)
+               gl->glBindTexture(GL_TEXTURE_2D, resourceManager->texWhite->textureId());
+            else
+                gl->glBindTexture(GL_TEXTURE_2D, normalLayers[miscSettings->debugLayer]);
         }
         else {
             gl->glBindTexture(GL_TEXTURE_2D, resourceManager->texWhite->textureId());

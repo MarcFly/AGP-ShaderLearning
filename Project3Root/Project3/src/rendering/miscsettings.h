@@ -12,6 +12,8 @@ public:
     QColor backgroundColor;
     float AMBIENT = 0.5f;
     bool renderLightSources = true;
+    int depthLayers = 1;
+    int debugLayer = 0;
 };
 
 #endif // MISCSETTINGS_H

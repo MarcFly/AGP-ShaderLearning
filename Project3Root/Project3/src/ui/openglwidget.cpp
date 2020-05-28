@@ -231,6 +231,7 @@ QVector<QString> OpenGLWidget::getTextureNames()
 void OpenGLWidget::showTextureWithName(QString textureName)
 {
     renderer->showTexture(textureName);
+    renderer->resize(camera->viewportWidth, camera->viewportHeight);
 }
 void OpenGLWidget::frame()
 {

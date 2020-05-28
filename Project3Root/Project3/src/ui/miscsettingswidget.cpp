@@ -22,6 +22,9 @@ MiscSettingsWidget::MiscSettingsWidget(QWidget *parent) :
     connect(ui->checkBoxLightSources, SIGNAL(clicked()), this, SLOT(onVisualHintChanged()));
     connect(ui->checkBoxSelectionOutline, SIGNAL(clicked()), this, SLOT(onVisualHintChanged()));
     connect(ui->spinAmbient, SIGNAL(valueChanged(double)), this, SLOT(onAmbientChanged(double)));
+
+    connect(ui->DebugLayer, SIGNAL(valueChanged(int)), this, SLOT(onDebugLayersChanged(int)));
+    connect(ui->DepthLayers, SIGNAL(valueChanged(int)), this, SLOT(onDepthLayersChanged(int)));
 }
 
 MiscSettingsWidget::~MiscSettingsWidget()
@@ -74,3 +77,16 @@ void MiscSettingsWidget::onVisualHintChanged()
     miscSettings->renderLightSources = ui->checkBoxLightSources->isChecked();
     emit settingsChanged();
 }
+
+void MiscSettingsWidget::onDebugLayersChanged(int val)
+{
+    miscSettings->debugLayer = val;
+    emit settingsChanged();
+}
+
+void MiscSettingsWidget::onDepthLayersChanged(int val)
+{
+    miscSettings->depthLayers = val;
+    emit settingsChanged();
+}
+

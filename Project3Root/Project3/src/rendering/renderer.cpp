@@ -8,6 +8,7 @@ QVector<QString> Renderer::getTextures() const
 void Renderer::showTexture(QString textureName)
 {
     m_shownTexture = textureName;
+
 }
 
 QString Renderer::shownTexture() const

@@ -24,4 +24,10 @@
         <file alias="debug_light.frag">shaders/debug_light.frag</file>
         <file alias="debug_light.vert">shaders/debug_light.vert</file>
     </qresource>
+    <qresource prefix="/SketchShaders">
+        <file alias="GenLayers.frag">shaders/SketchShaders/GenLayers.frag</file>
+        <file alias="GenLayers.vert">shaders/SketchShaders/GenLayers.vert</file>
+        <file alias="EdgeMask.frag">shaders/SketchShaders/EdgeMask.frag</file>
+        <file alias="EdgeMask.vert">shaders/SketchShaders/EdgeMask.vert</file>
+    </qresource>
 </RCC>
