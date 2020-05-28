@@ -532,22 +532,19 @@ void DeferredRenderer::passMeshesForLayers(Camera *camera)
 
 
 
-    gl->glClearColor(0,0,0,0);
-    gl->glClearDepth(0.0);
-    //gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-
+    //gl->glEnable(GL_CULL_FACE);
+    //gl->glDepthMask(GL_FALSE);
+    gl->glEnable(GL_DEPTH_TEST);
     if(program.bind())
     {
-        // We always have a first calculation of normal and depth for Geometry Buffer
-        // We start at 2nd layer as we need also previous depth buffer to do comparisons
         program.setUniformValue("ViewPort", QVector2D(camera->viewportWidth, camera->viewportHeight));
+        program.setUniformValue("outColor", 0);
+        program.setUniformValue("depth", 1);
 
         for(int i = 0; i < depthLayers.size(); ++i)
         {
-            // Generate a masked Layer
 
-            //GLuint maskA = (i%2), maskB = (i+1) % 2;
 
             // Pass A - Here we don't use automatic depth testign
             // The same shader performs a Manual Depth test that is actually what you write
@@ -555,27 +552,49 @@ void DeferredRenderer::passMeshesForLayers(Camera *camera)
 
             peelBO->bind();
 
+            // Initial Pass to render Normal first visible layer
             peelBO->addDepthAttachment(depthLayers[i]);
-
-            program.setUniformValue("outColor", 0);
             gl->glActiveTexture(GL_TEXTURE0);
             gl->glBindTexture(GL_TEXTURE_2D, normalLayers[i]);
-            gl->glDepthMask(GL_FALSE);
+
+            gl->glClearColor(0,0,0,0);
+            gl->glClearDepth(0.0);
+            gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            gl->glActiveTexture(GL_TEXTURE1);
+            if(i == 0)
+            {
+                gl->glBindTexture(GL_TEXTURE_2D, depthLayers[i]);
+                gl->glDisable(GL_DEPTH_TEST);
+            }
+                else
+                gl->glBindTexture(GL_TEXTURE_2D, depthLayers[i-1]);
+
+
 
             gl->glDepthFunc(GL_GREATER);
-
-            PassNormalDepth(camera, &program);
-
-            // Pass B - Here we cull what is behind the previous depth pass
-            gl->glEnable(GL_DEPTH_TEST);
-            gl->glClearColor(0,0,0,0);
-            gl->glClear(GL_COLOR_BUFFER_BIT);
-            gl->glDepthMask(GL_TRUE);
-            gl->glDepthFunc(GL_LEQUAL);
-
             PassNormalDepth(camera, &program);
 
             peelBO->release();
+
+            // Pass B - Here we cull what is behind the previous depth pass
+            gl->glEnable(GL_DEPTH_TEST);
+            peelBO->bind();
+
+
+
+            peelBO->addDepthAttachment(depthLayers[i]);
+            gl->glActiveTexture(GL_TEXTURE0);
+            gl->glBindTexture(GL_TEXTURE_2D, normalLayers[i]);
+            gl->glActiveTexture(GL_TEXTURE1);
+            gl->glBindTexture(GL_TEXTURE_2D, depthLayers[i]);
+
+            gl->glDepthFunc(GL_LEQUAL);
+            PassNormalDepth(camera, &program);
+
+            peelBO->release();
+
+
 
         }
 
@@ -583,7 +602,8 @@ void DeferredRenderer::passMeshesForLayers(Camera *camera)
 
     }
 
-    peelBO->release();
+    //peelBO->release();
+    gl->glDepthMask(GL_TRUE);
     gl->glEnable(GL_CULL_FACE);
 }
 

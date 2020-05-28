@@ -25,6 +25,9 @@ MiscSettingsWidget::MiscSettingsWidget(QWidget *parent) :
 
     connect(ui->DebugLayer, SIGNAL(valueChanged(int)), this, SLOT(onDebugLayersChanged(int)));
     connect(ui->DepthLayers, SIGNAL(valueChanged(int)), this, SLOT(onDepthLayersChanged(int)));
+
+    ui->DebugLayer->setValue(0);
+    ui->DepthLayers->setValue(1);
 }
 
 MiscSettingsWidget::~MiscSettingsWidget()
