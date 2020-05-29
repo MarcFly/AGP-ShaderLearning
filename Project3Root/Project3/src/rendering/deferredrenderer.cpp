@@ -15,6 +15,7 @@
 #include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
 #include <Qt3DCore/QTransform>
+
 // https://learnopengl.com/Advanced-Lighting/Deferred-Shading
 
 DeferredRenderer::DeferredRenderer() :
@@ -22,11 +23,14 @@ DeferredRenderer::DeferredRenderer() :
     fboDepth(QOpenGLTexture::Target2D),
     gboPosition(QOpenGLTexture::Target2D),
     gboAlbedoSpec(QOpenGLTexture::Target2D),
-    gboNormal(QOpenGLTexture::Target2D)
+    gboNormal(QOpenGLTexture::Target2D),
+    fboMask(QOpenGLTexture::Target2D)
 {
     fbo = nullptr;
     gbo = nullptr;
     lbo = nullptr;
+    mbo = nullptr;
+    obo = nullptr;
 
     // List of Textures
     addTexture("Final Render");
@@ -36,6 +40,7 @@ DeferredRenderer::DeferredRenderer() :
     addTexture("Depth");
     addTexture("Ambient");
     addTexture("LightSpheres");
+    addTexture("MaskSelected");
 }
 
 DeferredRenderer::~DeferredRenderer()
@@ -43,6 +48,8 @@ DeferredRenderer::~DeferredRenderer()
     delete fbo;
     delete gbo;
     delete lbo;
+    delete mbo;
+    delete obo;
 }
 
 void DeferredRenderer::initialize()
@@ -77,6 +84,14 @@ void DeferredRenderer::initialize()
     debugSpheres->fragmentShaderFilename = "res/shaders/debug_light.frag";
     debugSpheres->includeForSerialization = false;
 
+
+    // Masking Program, tests selected geometry and wirtes a white texture where they are
+    maskProgram = resourceManager->createShaderProgram();
+    maskProgram->name = "Mask";
+    maskProgram->vertexShaderFilename = "res/shaders/outline/mask.vert";
+    maskProgram->fragmentShaderFilename = "res/shaders/outline/mask.frag";
+    maskProgram->includeForSerialization = false;
+
     // Create the main FBO
     fbo = new FramebufferObject;
     fbo->create();
@@ -86,6 +101,12 @@ void DeferredRenderer::initialize()
 
     lbo = new FramebufferObject;
     lbo->create();
+
+    mbo = new FramebufferObject;
+    mbo->create();
+
+    obo = new FramebufferObject;
+    obo->create();
 }
 
 void DeferredRenderer::finalize()
@@ -98,6 +119,12 @@ void DeferredRenderer::finalize()
 
     lbo->destroy();
     delete lbo;
+
+    mbo->destroy();
+    delete mbo;
+
+    obo->destroy();
+    delete obo;
 }
 
 void DeferredRenderer::fboPrep(int w, int h)
@@ -212,7 +239,36 @@ void DeferredRenderer::lboPrep(int w, int h)
 
 }
 
+void DeferredRenderer::mboPrep(int w, int h)
+{
+    if(fboMask == 0) gl->glDeleteTextures(1, &fboMask);
+    gl->glGenTextures(1, &fboMask);
+    gl->glBindTexture(GL_TEXTURE_2D, fboMask);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w, h, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
 
+    // Attach textures to the FBO
+    mbo->bind();
+    // Here we are attaching all needed textures
+    // This should be faster but more expensive in memory
+    mbo->addColorAttachment(0, fboMask);
+    mbo->addDepthAttachment(fboDepth);
+    mbo->checkStatus();
+    mbo->release();
+
+    obo->bind();
+    obo->addColorAttachment(0, fboColor);
+    obo->addColorAttachment(1, fboMask);
+    obo->addDepthAttachment(fboDepth);
+    unsigned int attachments[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+    gl->glDrawBuffers(2, attachments);
+    obo->checkStatus();
+    obo->release();
+}
 void DeferredRenderer::resize(int w, int h)
 {
     OpenGLErrorGuard guard("DeferredRenderer::resize()");
@@ -222,7 +278,7 @@ void DeferredRenderer::resize(int w, int h)
 
     // Debug Preps
     lboPrep(w, h);
-
+    mboPrep(w,h);
 }
 
 void DeferredRenderer::render(Camera *camera)
@@ -250,8 +306,87 @@ void DeferredRenderer::render(Camera *camera)
 
     gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
+
+    // Outline will always be just before the blit
+    // Else it would be overwritten by other effects
+    //passOutline(camera);
+
+    fbo->bind();
     passBlit();
 }
+
+void DeferredRenderer::passOutline(Camera *camera)
+{
+    // We try to not attach a depth mask, then we have to disable write to a depth mask
+
+    if(selection->entities[0] == nullptr) return;
+
+    gl->glDepthMask(GL_FALSE);
+    gl->glDepthFunc(GL_LEQUAL);
+
+    mbo->bind();
+    {
+        // Create mask for the desired object
+        QOpenGLShaderProgram &program = maskProgram->program;
+        if(program.bind())
+        {
+            program.setUniformValue("outColor", 0);
+            gl->glActiveTexture(GL_TEXTURE0);
+            gl->glBindTexture(GL_TEXTURE_2D, fboMask);
+
+            program.setUniformValue("projectionMatrix", camera->projectionMatrix);
+
+            for(int i = 0; selection->entities[i] != nullptr && i < MAX_SELECTED_ENTITIES; ++i)
+            {
+                Entity* et = selection->entities[i];
+                if(et->meshRenderer != nullptr)
+                {
+                    // Data to get position properly
+
+                    QMatrix4x4 worldViewMatrix = camera->viewMatrix * et->transform->matrix();
+                    program.setUniformValue("worldViewMatrix", worldViewMatrix);
+
+                    auto mr = et->meshRenderer->mesh;
+                    for(auto submesh : mr->submeshes)
+                    {
+                        // at later stages, it should search for materia to get bump map probably
+                        // Normal is required for it? idk, will add later if required
+
+                        submesh->draw();
+                    }
+                }
+
+            }
+        }
+    }
+    mbo->release();
+    gl->glDisable(GL_DEPTH_TEST);
+    // Then generate outline based on the mask
+    /*
+    {
+        QOpenGLShaderProgram &program = outlineProgram->program;
+        if(program.bind())
+        {
+            program.setUniformValue("outColor", 0);
+            gl->glActiveTexture(GL_TEXTURE0);
+            gl->glBindTexture(GL_TEXTURE_2D, fboColor);
+
+            program.setUniformValue("mask", 1);
+            gl->glActiveTexture(GL_TEXTURE1);
+            gl->glBindTexture(GL_TEXTURE_2D, fboMask);
+
+            program.setUniformValue("width", miscSettings->OutlineWidth);
+            program.setUniformValue("width", miscSettings->OutlineAlpha);
+
+
+        }
+    }
+*/
+    gl->glEnable(GL_DEPTH_TEST);
+    gl->glDepthFunc(GL_GREATER);
+    gl->glDepthMask(GL_TRUE);
+}
+
 void DeferredRenderer::passMeshes(Camera *camera)
 {
     QOpenGLShaderProgram &program = gpassProgram->program;
@@ -500,6 +635,10 @@ void DeferredRenderer::passBlit()
         }
         else if(shownTexture() == "LightSpheres"){
             gl->glBindTexture(GL_TEXTURE_2D, lightSpheres);
+        }
+        else if(shownTexture() == "MaskSelected")
+        {
+            gl->glBindTexture(GL_TEXTURE_2D, fboMask);
         }
         else {
             gl->glBindTexture(GL_TEXTURE_2D, resourceManager->texWhite->textureId());
