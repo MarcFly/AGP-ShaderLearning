@@ -57,6 +57,7 @@ private:
 
     // Outline Pass
     GLuint fboMask = 0;
+    GLuint fboDepthMask = 0;
 
     // ONLY FOR DEBUG PURPOSES
     // ONLY WRITE TO WHEN THE TEXTURE IS SELECTED

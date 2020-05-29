@@ -251,19 +251,30 @@ void DeferredRenderer::mboPrep(int w, int h)
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w, h, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
 
+    if (fboDepthMask == 0) gl->glDeleteTextures(1, &fboDepthMask);
+    gl->glGenTextures(1, &fboDepthMask);
+    gl->glBindTexture(GL_TEXTURE_2D, fboDepthMask);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, w, h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+
+
     // Attach textures to the FBO
     mbo->bind();
     // Here we are attaching all needed textures
     // This should be faster but more expensive in memory
     mbo->addColorAttachment(0, fboMask);
-    mbo->addDepthAttachment(fboDepth);
+    mbo->addDepthAttachment(fboDepthMask);
     mbo->checkStatus();
     mbo->release();
 
     obo->bind();
     obo->addColorAttachment(0, fboColor);
     obo->addColorAttachment(1, fboMask);
-    obo->addDepthAttachment(fboDepth);
+    obo->addDepthAttachment(fboDepthMask);
     unsigned int attachments[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
     gl->glDrawBuffers(2, attachments);
     obo->checkStatus();
@@ -304,15 +315,16 @@ void DeferredRenderer::render(Camera *camera)
     if(shownTexture() == "LightSpheres")
         passDebugLights();
 
-    gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    //gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
 
     // Outline will always be just before the blit
     // Else it would be overwritten by other effects
-    //passOutline(camera);
+    passOutline(camera);
 
-    fbo->bind();
+    //fbo->bind();
     passBlit();
+    //fbo->release();
 }
 
 void DeferredRenderer::passOutline(Camera *camera)
@@ -321,10 +333,10 @@ void DeferredRenderer::passOutline(Camera *camera)
 
     if(selection->entities[0] == nullptr) return;
 
-    gl->glDepthMask(GL_FALSE);
-    gl->glDepthFunc(GL_LEQUAL);
+    //gl->glDepthMask(GL_FALSE);
 
     mbo->bind();
+    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     {
         // Create mask for the desired object
         QOpenGLShaderProgram &program = maskProgram->program;
@@ -361,6 +373,7 @@ void DeferredRenderer::passOutline(Camera *camera)
     }
     mbo->release();
     gl->glDisable(GL_DEPTH_TEST);
+    obo->bind();
     // Then generate outline based on the mask
     /*
     {
@@ -382,6 +395,7 @@ void DeferredRenderer::passOutline(Camera *camera)
         }
     }
 */
+    obo->release();
     gl->glEnable(GL_DEPTH_TEST);
     gl->glDepthFunc(GL_GREATER);
     gl->glDepthMask(GL_TRUE);
