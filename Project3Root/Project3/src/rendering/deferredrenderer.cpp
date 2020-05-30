@@ -92,6 +92,13 @@ void DeferredRenderer::initialize()
     maskProgram->fragmentShaderFilename = "res/shaders/outline/mask.frag";
     maskProgram->includeForSerialization = false;
 
+    // Masking Program, tests selected geometry and wirtes a white texture where they are
+    outlineProgram = resourceManager->createShaderProgram();
+    outlineProgram->name = "Outline";
+    outlineProgram->vertexShaderFilename = "res/shaders/outline/outline.vert";
+    outlineProgram->fragmentShaderFilename = "res/shaders/outline/outline.frag";
+    outlineProgram->includeForSerialization = false;
+
     // Create the main FBO
     fbo = new FramebufferObject;
     fbo->create();
@@ -279,6 +286,7 @@ void DeferredRenderer::mboPrep(int w, int h)
     gl->glDrawBuffers(2, attachments);
     obo->checkStatus();
     obo->release();
+
 }
 void DeferredRenderer::resize(int w, int h)
 {
@@ -331,11 +339,10 @@ void DeferredRenderer::passOutline(Camera *camera)
 {
     // We try to not attach a depth mask, then we have to disable write to a depth mask
 
-    if(selection->entities[0] == nullptr) return;
-
-    //gl->glDepthMask(GL_FALSE);
+    if(selection->entities[0] == nullptr &&  !miscSettings->renderOutline) return;
 
     mbo->bind();
+    gl->glClearColor(0.,0.,0.,0.);
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     {
         // Create mask for the desired object
@@ -372,10 +379,15 @@ void DeferredRenderer::passOutline(Camera *camera)
         }
     }
     mbo->release();
+
+
+    // Prepare glState to render outline
     gl->glDisable(GL_DEPTH_TEST);
+    gl->glEnable(GL_BLEND);
+    gl->glBlendFunc(GL_ONE_MINUS_DST_ALPHA, GL_ONE);
+
     obo->bind();
     // Then generate outline based on the mask
-    /*
     {
         QOpenGLShaderProgram &program = outlineProgram->program;
         if(program.bind())
@@ -389,16 +401,17 @@ void DeferredRenderer::passOutline(Camera *camera)
             gl->glBindTexture(GL_TEXTURE_2D, fboMask);
 
             program.setUniformValue("width", miscSettings->OutlineWidth);
-            program.setUniformValue("width", miscSettings->OutlineAlpha);
+            program.setUniformValue("alpha", miscSettings->OutlineAlpha);
 
-
+            resourceManager->quad->submeshes[0]->draw();
         }
     }
-*/
+
     obo->release();
+
+    gl->glDisable(GL_BLEND);
+    gl->glBlendFunc(GL_ONE,GL_ONE);
     gl->glEnable(GL_DEPTH_TEST);
-    gl->glDepthFunc(GL_GREATER);
-    gl->glDepthMask(GL_TRUE);
 }
 
 void DeferredRenderer::passMeshes(Camera *camera)

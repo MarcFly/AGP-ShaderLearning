@@ -25,5 +25,7 @@
         <file alias="debug_light.vert">shaders/debug_light.vert</file>
         <file>shaders/outline/mask.vert</file>
         <file>shaders/outline/mask.frag</file>
+        <file>shaders/outline/outline.vert</file>
+        <file>shaders/outline/outline.frag</file>
     </qresource>
 </RCC>

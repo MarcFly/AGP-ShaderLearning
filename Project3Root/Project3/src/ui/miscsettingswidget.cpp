@@ -74,3 +74,21 @@ void MiscSettingsWidget::onVisualHintChanged()
     miscSettings->renderLightSources = ui->checkBoxLightSources->isChecked();
     emit settingsChanged();
 }
+
+void MiscSettingsWidget::onOutlineAlphaChanged(double val)
+{
+    miscSettings->OutlineAlpha = val;
+    emit settingsChanged();
+}
+
+void MiscSettingsWidget::onOutlineWidthChanged(double val)
+{
+    miscSettings->OutlineWidth = val;
+    emit settingsChanged();
+}
+
+void MiscSettingsWidget::onOutlineStateChanged()
+{
+    miscSettings->renderOutline = ui->checkBoxSelectionOutline->isChecked();
+    emit settingsChanged();
+}
