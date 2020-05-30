@@ -20,8 +20,10 @@ MiscSettingsWidget::MiscSettingsWidget(QWidget *parent) :
     connect(ui->buttonBackgroundColor, SIGNAL(clicked()), this, SLOT(onBackgroundColorClicked()));
     connect(ui->checkBoxGrid, SIGNAL(clicked()), this, SLOT(onVisualHintChanged()));
     connect(ui->checkBoxLightSources, SIGNAL(clicked()), this, SLOT(onVisualHintChanged()));
-    connect(ui->checkBoxSelectionOutline, SIGNAL(clicked()), this, SLOT(onVisualHintChanged()));
+    connect(ui->checkBoxSelectionOutline, SIGNAL(clicked()), this, SLOT(onOutlineStateChanged()));
     connect(ui->spinAmbient, SIGNAL(valueChanged(double)), this, SLOT(onAmbientChanged(double)));
+    connect(ui->OutlineAlphaSpinBox, SIGNAL(valueChanged(double)), this, SLOT(onOutlineAlphaChanged(double)));
+    connect(ui->OutlineWidthSpinBox, SIGNAL(valueChanged(double)), this, SLOT(onOutlineWidthChanged(double)));
 }
 
 MiscSettingsWidget::~MiscSettingsWidget()

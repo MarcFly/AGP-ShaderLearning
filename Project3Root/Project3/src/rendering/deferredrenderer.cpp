@@ -339,7 +339,7 @@ void DeferredRenderer::passOutline(Camera *camera)
 {
     // We try to not attach a depth mask, then we have to disable write to a depth mask
 
-    if(selection->entities[0] == nullptr &&  !miscSettings->renderOutline) return;
+    if(selection->entities[0] == nullptr ||  !miscSettings->renderOutline) return;
 
     mbo->bind();
     gl->glClearColor(0.,0.,0.,0.);
@@ -384,7 +384,7 @@ void DeferredRenderer::passOutline(Camera *camera)
     // Prepare glState to render outline
     gl->glDisable(GL_DEPTH_TEST);
     gl->glEnable(GL_BLEND);
-    gl->glBlendFunc(GL_ONE_MINUS_DST_ALPHA, GL_ONE);
+    gl->glBlendFunc(GL_ONE_MINUS_DST_ALPHA, GL_DST_ALPHA);
 
     obo->bind();
     // Then generate outline based on the mask
@@ -399,6 +399,8 @@ void DeferredRenderer::passOutline(Camera *camera)
             program.setUniformValue("mask", 1);
             gl->glActiveTexture(GL_TEXTURE1);
             gl->glBindTexture(GL_TEXTURE_2D, fboMask);
+
+            program.setUniformValue("viewP", camera->viewportWidth, camera->viewportHeight);
 
             program.setUniformValue("width", miscSettings->OutlineWidth);
             program.setUniformValue("alpha", miscSettings->OutlineAlpha);
