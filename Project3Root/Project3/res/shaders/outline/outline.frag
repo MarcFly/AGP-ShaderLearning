@@ -12,40 +12,27 @@ uniform vec2 viewP;
 void main(void)
 {
     if(width == 0. || alpha == 0.) discard;
-    vec2 vP = textureSize(mask,0);
-    //vP = viewP;
-    vec2 texCoords = gl_FragCoord.xy / vP;
-    vec2 texInc = vec2(1.) / vP;
+
+    vec2 texCoords = gl_FragCoord.xy / viewP;
 
     if(texture2D(mask, texCoords).r > 0.1) discard;
 
-    int tw = int(ceil(width));
-    float dp = 9999999.;
-    int st = -tw;
+    float w = width / viewP.x;
+    vec3 inc = vec3(1.,0.,-1.) * w;
+    vec2 incd = vec2(1./sqrt(2.), -1./sqrt(2.)) * w;
 
-    for(int i = st; i <= tw; ++i)
-    {
-        vec2 inc = vec2(i,0.);
-        vec2 coord = texCoords+inc;
-        float v = texture2D(mask, coord).r;
-        if(v > .1)
-        {
-            float t = width / length(inc);
-            dp = clamp(t, 0.,1.)*v;
-        }
-    }
-    for(int i = st;i <= tw; ++i)
-    {
-        vec2 inc = vec2(i, 0.);
-        vec2 coord = texCoords+inc;
-        float v = texture2D(mask, coord).r;
-        if(v > 1.);
-        {
-            float t = width / length(inc);
-            dp = clamp(t, 0.,1.)*v;
-        }
-    }
-    if(dp == 9999999.) discard;
+    float u = texture2D(mask, texCoords + inc.yx).r;
+    float d = texture2D(mask, texCoords + inc.yz).r;
+    float r = texture2D(mask, texCoords + inc.xy).r;
+    float l = texture2D(mask, texCoords + inc.zy).r;
 
-    outColor = vec4(1., .5, 0., alpha * dp);
+    float dur = texture2D(mask, texCoords + incd.xx).r;
+    float dul = texture2D(mask, texCoords + incd.yx).r;
+    float ddr = texture2D(mask, texCoords + incd.xy).r;
+    float ddl = texture2D(mask, texCoords + incd.yy).r;
+
+    bool test = u > .1 || d > .1 || r > .1 || l > .1 || dur > .1 || dul > .1 || ddr > .1 || ddl > .1;
+    if(!test) discard;
+
+    outColor = vec4(1., .5, 0., alpha);
 }

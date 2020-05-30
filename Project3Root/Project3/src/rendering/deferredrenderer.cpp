@@ -384,7 +384,7 @@ void DeferredRenderer::passOutline(Camera *camera)
     // Prepare glState to render outline
     gl->glDisable(GL_DEPTH_TEST);
     gl->glEnable(GL_BLEND);
-    gl->glBlendFunc(GL_ONE_MINUS_DST_ALPHA, GL_DST_ALPHA);
+    gl->glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     obo->bind();
     // Then generate outline based on the mask

@@ -130,6 +130,9 @@
      <layout class="QGridLayout" name="gridLayout">
       <item row="2" column="1">
        <widget class="QDoubleSpinBox" name="OutlineAlphaSpinBox">
+        <property name="minimum">
+         <double>0.010000000000000</double>
+        </property>
         <property name="maximum">
          <double>1.000000000000000</double>
         </property>
@@ -150,6 +153,9 @@
       </item>
       <item row="1" column="1">
        <widget class="QDoubleSpinBox" name="OutlineWidthSpinBox">
+        <property name="minimum">
+         <double>1.000000000000000</double>
+        </property>
         <property name="singleStep">
          <double>0.100000000000000</double>
         </property>
