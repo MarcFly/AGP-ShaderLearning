@@ -8,6 +8,12 @@ Entity::Entity() :
         components[i] = nullptr;
     transform = new Transform;
 }
+Entity::Entity(Transform trans) : name("Entity")
+{
+    for (int i = 0; i < MAX_COMPONENTS; ++i)
+        components[i] = nullptr;
+    transform = &trans;
+}
 
 Entity::~Entity()
 {
@@ -98,8 +104,31 @@ Entity *Entity::clone() const
 
 void Entity::read(const QJsonObject &json)
 {
+    for (QJsonObject::const_iterator j = json.begin(); j != json.end(); j++)
+    {
+
+        QString key = j.key();
+        if (key == "TransfromComponent")
+        {
+            Transform* transform = new Transform();
+            QJsonObject TransformObject = j->toObject();
+            transform->read(TransformObject);
+        }
+        else if (key == "name")
+        {
+            name = j.value().toString();
+        }
+    }
+
 }
 
 void Entity::write(QJsonObject &json)
 {
+    json["name"] = this->name;
+    json["isActive"] = this->active;
+
+    if (transform != nullptr)
+    {
+        transform->write(json);
+    }
 }

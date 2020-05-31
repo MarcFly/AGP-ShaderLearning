@@ -10,6 +10,7 @@ class Entity
 public:
 
     Entity();
+    Entity(Transform trans);
     ~Entity();
 
     Component *addComponent(ComponentType ctype);

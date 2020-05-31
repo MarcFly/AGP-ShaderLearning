@@ -75,9 +75,27 @@ void Scene::handleResourcesAboutToDie()
 
 void Scene::read(const QJsonObject &json)
 {
+    for (QJsonObject::const_iterator i = json.begin(); i != json.end(); i++)
+    {
+        Entity* ret = new Entity();
+
+        QJsonObject obj = i->toObject();
+        ret->read(obj);
+    }
 }
 
 void Scene::write(QJsonObject &json)
-{
+{  
+    QJsonObject gos;
+    for (int i = 0; i< entities.length();i++)
+    {
+        QJsonObject go;
+        entities[i]->write(go);
+        QString goIndex = QString::number(i);
+        json.insert(goIndex,go);
+        //gos.insert(goIndex, go);
+
+    }
+    //json.insert("GameObjects", gos);
 }
 

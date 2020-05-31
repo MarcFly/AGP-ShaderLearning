@@ -1,0 +1,16 @@
+{
+    "0": {
+        "TransfromComponent": {
+            "PosRotScale": "0,2,4,0,0,0,1,1,1"
+        },
+        "isActive": true,
+        "name": "Entity"
+    },
+    "1": {
+        "TransfromComponent": {
+            "PosRotScale": "0,4,2,0,0,0,1,1,1"
+        },
+        "isActive": true,
+        "name": "Entity"
+    }
+}

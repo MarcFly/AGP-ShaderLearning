@@ -166,7 +166,7 @@ void MainWindow::openProject()
 
 void MainWindow::saveProject()
 {
-    QString path = QFileDialog::getSaveFileName(this, "Save project", QString(), QString::fromLatin1("Json files (*.json)"));
+    QString path = "D:/Documents/GitHub/AGP-ShaderLearning/Project3Root/Scenes/test.json";// QFileDialog::getSaveFileName(this, "Save project", QString(), QString::fromLatin1("Json files (*.json)"));
     if (!path.isEmpty())
     {
         QFile saveFile(path);
