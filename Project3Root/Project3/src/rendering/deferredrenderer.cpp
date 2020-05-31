@@ -329,14 +329,23 @@ void DeferredRenderer::render(Camera *camera)
 
 
 
-    gbo->bind();
+
+
     // Clear color
+    gbo->bind();
     gl->glClearDepth(1.0);
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    gbo->release();
+
+
+
+
 
     // Passes
+    passGrid(camera);
+
     passMeshes(camera);
-    gbo->release();
+
     gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
     fbo->bind();
@@ -345,7 +354,7 @@ void DeferredRenderer::render(Camera *camera)
     fbo->release();
     gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
-    passGrid(camera);
+
 
     if(shownTexture() == "LightSpheres")
         passDebugLights();
@@ -373,6 +382,8 @@ void DeferredRenderer::passGrid(Camera* camera)
     gl->glEnable(GL_DEPTH_TEST);
     gl->glEnable(GL_BLEND);
     gl->glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    gl->glDepthFunc(GL_LEQUAL);
 
     QOpenGLShaderProgram& program = gridProgram->program;
     if(program.bind())
@@ -493,7 +504,13 @@ void DeferredRenderer::passOutline(Camera *camera)
 
 void DeferredRenderer::passMeshes(Camera *camera)
 {
+    gbo->bind();
+
     QOpenGLShaderProgram &program = gpassProgram->program;
+    gl->glDepthFunc(GL_LEQUAL);
+    gl->glDepthMask(GL_TRUE);
+    gl->glEnable(GL_BLEND);
+    gl->glBlendFunc(GL_ONE, GL_ZERO);
 
     if(program.bind())
     {
@@ -617,6 +634,8 @@ void DeferredRenderer::passMeshes(Camera *camera)
 
         program.release();
     }
+
+    gbo->release();
 }
 
 void DeferredRenderer::passLighting()

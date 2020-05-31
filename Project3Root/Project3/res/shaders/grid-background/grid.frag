@@ -34,7 +34,7 @@ void main(void)
     vec3 camPosWorldSpace = vec3(pvwMat * vec4(camDir, 1.));
 
     // Plane Parameters
-    vec3 N = vec3(0.,1.,0.);
+    vec3 N = vec3(0.,-1.,0.);
     vec3 P = vec3(0.);
 
     // RayPlane Intersec
