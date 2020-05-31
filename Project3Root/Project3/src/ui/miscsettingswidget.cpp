@@ -20,7 +20,7 @@ MiscSettingsWidget::MiscSettingsWidget(QWidget *parent) :
     connect(ui->buttonBackgroundColor, SIGNAL(clicked()), this, SLOT(onBackgroundColorClicked()));
     connect(ui->checkBoxGrid, SIGNAL(clicked()), this, SLOT(onVisualHintChanged()));
     connect(ui->checkBoxLightSources, SIGNAL(clicked()), this, SLOT(onVisualHintChanged()));
-    connect(ui->checkBoxSelectionOutline, SIGNAL(clicked()), this, SLOT(onOutlineStateChanged()));
+    connect(ui->checkBoxSelectionOutline, SIGNAL(clicked()), this, SLOT(onVisualHintChanged()));
     connect(ui->spinAmbient, SIGNAL(valueChanged(double)), this, SLOT(onAmbientChanged(double)));
     connect(ui->OutlineAlphaSpinBox, SIGNAL(valueChanged(double)), this, SLOT(onOutlineAlphaChanged(double)));
     connect(ui->OutlineWidthSpinBox, SIGNAL(valueChanged(double)), this, SLOT(onOutlineWidthChanged(double)));
@@ -74,6 +74,8 @@ void MiscSettingsWidget::onBackgroundColorClicked()
 void MiscSettingsWidget::onVisualHintChanged()
 {
     miscSettings->renderLightSources = ui->checkBoxLightSources->isChecked();
+    miscSettings->renderOutline = ui->checkBoxSelectionOutline->isChecked();
+    miscSettings->renderGrid = ui->checkBoxGrid->isChecked();
     emit settingsChanged();
 }
 
@@ -86,11 +88,5 @@ void MiscSettingsWidget::onOutlineAlphaChanged(double val)
 void MiscSettingsWidget::onOutlineWidthChanged(double val)
 {
     miscSettings->OutlineWidth = val;
-    emit settingsChanged();
-}
-
-void MiscSettingsWidget::onOutlineStateChanged()
-{
-    miscSettings->renderOutline = ui->checkBoxSelectionOutline->isChecked();
     emit settingsChanged();
 }

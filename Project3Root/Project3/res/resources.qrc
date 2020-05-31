@@ -27,5 +27,7 @@
         <file>shaders/outline/mask.frag</file>
         <file>shaders/outline/outline.vert</file>
         <file>shaders/outline/outline.frag</file>
+        <file>shaders/grid-background/grid.vert</file>
+        <file>shaders/grid-background/grid.frag</file>
     </qresource>
 </RCC>

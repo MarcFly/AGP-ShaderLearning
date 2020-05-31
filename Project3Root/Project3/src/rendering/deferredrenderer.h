@@ -27,6 +27,7 @@ private:
     void gboPrep(int w, int h);
     void lboPrep(int w, int h);
     void mboPrep(int w, int h);
+    void gbboPrep(int w, int h);
 
     void passMeshes(Camera *camera);
     void passLighting();
@@ -36,6 +37,9 @@ private:
 
     void passOutline(Camera *camera);
 
+    void passGrid(Camera* camera);
+    void passBackground(Camera* camera);
+
     // Shaders
     ShaderProgram *gpassProgram = nullptr;
     ShaderProgram *deferredProgram = nullptr;
@@ -43,6 +47,9 @@ private:
 
     ShaderProgram *maskProgram = nullptr;
     ShaderProgram *outlineProgram = nullptr;
+
+    ShaderProgram *bgProgram = nullptr;
+    ShaderProgram* gridProgram = nullptr;
 
     // MAIN Textures Needed
 
@@ -66,13 +73,14 @@ private:
 
     // Framebuffers, defined for use
     FramebufferObject *fbo = nullptr; // Main FBO
+    // Will use fbo for grid and background also
     FramebufferObject *gbo = nullptr; // Geometry Pass
     FramebufferObject *lbo = nullptr; // Debug for Light Spheres
 
     FramebufferObject *mbo = nullptr; // Mask selected Object
     FramebufferObject *obo = nullptr; // Outline buffer object
 
-
+    FramebufferObject *gbbo = nullptr; // Gird & Background Buffer Object
 
 };
 
