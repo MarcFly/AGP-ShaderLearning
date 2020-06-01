@@ -15,7 +15,7 @@ public:
     Scene();
     ~Scene();
 
-    int numEntities() const;
+    int numEntities() const;    
     Entity *addEntity();
     Entity *entityAt(int index);
     void removeEntityAt(int index);

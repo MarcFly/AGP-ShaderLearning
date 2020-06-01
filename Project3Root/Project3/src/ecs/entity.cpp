@@ -110,13 +110,17 @@ void Entity::read(const QJsonObject &json)
         QString key = j.key();
         if (key == "TransfromComponent")
         {
-            Transform* transform = new Transform();
+            transform = new Transform();
             QJsonObject TransformObject = j->toObject();
             transform->read(TransformObject);
         }
         else if (key == "name")
         {
             name = j.value().toString();
+        }
+        else if (key == "isActive")
+        {
+            this->active = j.value().toBool();
         }
     }
 

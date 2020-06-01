@@ -77,7 +77,7 @@ void Scene::read(const QJsonObject &json)
 {
     for (QJsonObject::const_iterator i = json.begin(); i != json.end(); i++)
     {
-        Entity* ret = new Entity();
+        Entity* ret = addEntity();
 
         QJsonObject obj = i->toObject();
         ret->read(obj);
