@@ -247,8 +247,8 @@ void MainWindow::addPointLight()
     entity->name = "Point light";
     entity->addComponent(ComponentType::LightSource);
     entity->lightSource->type = LightSource::Type::Point;
-    entity->lightSource->intensity = 10.0f;
-    entity->lightSource->range = 20.0f;
+    entity->lightSource->intensity = 5.0f;
+    entity->lightSource->range = 10.0f;
     onEntityAdded(entity);
 }
 

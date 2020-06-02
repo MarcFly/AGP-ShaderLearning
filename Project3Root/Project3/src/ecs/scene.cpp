@@ -93,9 +93,6 @@ void Scene::write(QJsonObject &json)
         entities[i]->write(go);
         QString goIndex = QString::number(i);
         json.insert(goIndex,go);
-        //gos.insert(goIndex, go);
-
-    }
-    //json.insert("GameObjects", gos);
+    }    
 }
 

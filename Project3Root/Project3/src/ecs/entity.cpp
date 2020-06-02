@@ -35,7 +35,7 @@ Component *Entity::addComponent(ComponentType componentType)
     case ComponentType::LightSource:
         Q_ASSERT(lightSource == nullptr);
         component = lightSource = new LightSource;
-        break;;
+        break;
     case ComponentType::MeshRenderer:
         Q_ASSERT(meshRenderer == nullptr);
         component = meshRenderer = new MeshRenderer;
@@ -108,11 +108,27 @@ void Entity::read(const QJsonObject &json)
     {
 
         QString key = j.key();
-        if (key == "TransfromComponent")
+        if (key == "TransformComponent")
         {
             transform = new Transform();
             QJsonObject TransformObject = j->toObject();
             transform->read(TransformObject);
+        }
+        else if (key == "LightComponent")
+        {
+            //Create new LightSource in the entity
+            lightSource = new LightSource();
+            lightSource->entity = this;
+
+            //Update lightsource values
+            QJsonObject lightObject = j->toObject();
+            lightSource->read(lightObject);            
+        }
+        else if (key == "MeshRenderer")
+        {
+            meshRenderer = new MeshRenderer();
+            QJsonObject meshObject = j->toObject();
+            meshRenderer->read(meshObject);
         }
         else if (key == "name")
         {
@@ -132,7 +148,11 @@ void Entity::write(QJsonObject &json)
     json["isActive"] = this->active;
 
     if (transform != nullptr)
-    {
+    {        
         transform->write(json);
+    }
+    if (this->lightSource != nullptr)
+    {
+        lightSource->write(json);
     }
 }

@@ -31,38 +31,29 @@ void Transform::read(const QJsonObject &json)
     position.setZ(strList[2].toFloat());
 
     rotation.setX(strList[3].toFloat());
-    rotation.setX(strList[4].toFloat());
-    rotation.setX(strList[5].toFloat());
+    rotation.setY(strList[4].toFloat());
+    rotation.setZ(strList[5].toFloat());
 
     scale.setX(strList[6].toFloat());
-    scale.setX(strList[7].toFloat());
-    scale.setX(strList[8].toFloat());
+    scale.setY(strList[7].toFloat());
+    scale.setZ(strList[8].toFloat());
 }
 
 void Transform::write(QJsonObject &json)
 {
-    QJsonObject transfromComponent;
-
+    QJsonObject transformComponent;
     QString pos;
-    pos.append(QString::number(this->position.x()));
-    pos.append(",");
-    pos.append(QString::number(this->position.y()));
-    pos.append(",");
-    pos.append(QString::number(this->position.z()));
-    pos.append(",");
-    pos.append(QString::number(this->rotation.x()));
-    pos.append(",");
-    pos.append(QString::number(this->rotation.y()));
-    pos.append(",");
-    pos.append(QString::number(this->rotation.z()));
-    pos.append(",");
-    pos.append(QString::number(this->scale.x()));
-    pos.append(",");
-    pos.append(QString::number(this->scale.y()));
-    pos.append(",");
-    pos.append(QString::number(this->scale.z()));
-    transfromComponent["PosRotScale"] = pos;
-    json.insert("TransfromComponent", transfromComponent);
+    pos.append(QString::number(this->position.x()) + ",");
+    pos.append(QString::number(this->position.y()) + ",");
+    pos.append(QString::number(this->position.z()) + ",");
+    pos.append(QString::number(this->rotation.x()) + ",");
+    pos.append(QString::number(this->rotation.y()) + ",");
+    pos.append(QString::number(this->rotation.z()) + ",");
+    pos.append(QString::number(this->scale.x()) + ",");
+    pos.append(QString::number(this->scale.y()) + ",");
+    pos.append(QString::number(this->scale.z()) + ",");
+    transformComponent["PosRotScale"] = pos;
+    json.insert("TransformComponent", transformComponent);
 }
 
 
@@ -90,10 +81,12 @@ void MeshRenderer::handleResourcesAboutToDie()
 
 void MeshRenderer::read(const QJsonObject &json)
 {
+    this->mesh->read(json);
 }
 
 void MeshRenderer::write(QJsonObject &json)
 {
+    this->mesh->write(json);
 }
 
 
@@ -106,10 +99,35 @@ LightSource::LightSource() :
 }
 
 void LightSource::read(const QJsonObject &json)
-{
+{    
+    this->color.setRed(json["r"].toInt());
+    this->color.setGreen(json["g"].toInt());
+    this->color.setBlue(json["b"].toInt());
+    this->color.setAlpha(json["a"].toInt());
+    //this->kc = json["kc"].toInt();
+    //this->kl = json["kl"].toInt();
+    //this->kq = json["kq"].toInt();
+    Type type = (Type)json["type"].toInt();
+    this->type = type;
+    this->range = json["range"].toDouble();
+    this->intensity = json["intensity"].toDouble();
 }
 
 void LightSource::write(QJsonObject &json)
-{
+{    
+    QJsonObject lightComponent;
+    int ret[] = {this->color.red(),this->color.green(),this->color.blue(),this->color.alpha()};
+    lightComponent["r"] = ret[0];
+    lightComponent["g"] = ret[1];
+    lightComponent["b"] = ret[2];
+    lightComponent["a"] = ret[3];
+    lightComponent["kc"] = this->kc;
+    lightComponent["kl"] = this->kl;
+    lightComponent["kq"] = this->kq;
+    lightComponent["type"] = (int)this->type;
+    lightComponent["range"] = this->range;
+    lightComponent["intensity"] = this->intensity;
+
+    json.insert("LightComponent", lightComponent);
 }
 
