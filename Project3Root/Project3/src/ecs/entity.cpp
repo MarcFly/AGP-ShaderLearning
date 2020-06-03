@@ -1,5 +1,6 @@
 #include "entity.h"
 #include "globals.h"
+#include "util/modelimporter.h"
 
 Entity::Entity() :
     name("Entity")
@@ -126,9 +127,14 @@ void Entity::read(const QJsonObject &json)
         }
         else if (key == "MeshRenderer")
         {
-            meshRenderer = new MeshRenderer();
-            QJsonObject meshObject = j->toObject();
-            meshRenderer->read(meshObject);
+            QJsonObject meshObject = j->toObject();            
+
+            QString path = meshObject["MeshFilePath"].toString();
+            if (path.isEmpty()) return;
+
+            ModelImporter importer;
+            Entity* ret = importer.import(path);
+            this->meshRenderer = ret->meshRenderer;
         }
         else if (key == "name")
         {
@@ -155,4 +161,9 @@ void Entity::write(QJsonObject &json)
     {
         lightSource->write(json);
     }
+    if (this->meshRenderer != nullptr)
+    {
+        meshRenderer->write(json);
+    }
+
 }

@@ -1,21 +1,12 @@
 {
     "0": {
-        "LightComponent": {
-            "a": 255,
-            "b": 255,
-            "g": 255,
-            "intensity": 5.400000095367432,
-            "kc": 1,
-            "kl": 0.699999988079071,
-            "kq": 1.7999999523162842,
-            "r": 255,
-            "range": 9.800000190734863,
-            "type": 0
+        "MeshRenderer": {
+            "MeshFilePath": "D:/Documents/GitHub/AGP-ShaderLearning/Project3Root/Project3/res/models/Patrick/Patrick.obj"
         },
         "TransformComponent": {
-            "PosRotScale": "3,5,4,0,0,0,1,1,1"
+            "PosRotScale": "2,4,6,0,0,0,1,1,1,"
         },
         "isActive": true,
-        "name": "Point light"
+        "name": "Patrick"
     }
 }

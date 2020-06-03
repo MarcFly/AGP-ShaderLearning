@@ -269,6 +269,7 @@ void MainWindow::importModel()
 
     ModelImporter importer;
     Entity *entity = importer.import(path);
+    scene->entities.push_back(entity);
     onEntityAdded(entity);
 }
 
