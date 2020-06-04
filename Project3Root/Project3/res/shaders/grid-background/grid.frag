@@ -21,17 +21,15 @@ void main(void)
 {
     outColor = vec4(1.,1.,1.,1.);
 
-    mat4 pvwMat = projectionMatrix * worldMatrix;
-
     // Get Camera Direciton
     vec3 camDir;
     camDir.x = camParams.x + texCoord.x * (camParams.y - camParams.x);
     camDir.y = camParams.z + texCoord.y * (camParams.w - camParams.z);
     camDir.z = -znear;
-    vec3 camDirWorldSpace = normalize(mat3(pvwMat) * camDir);
+    vec3 camDirWorldSpace = normalize(mat3(worldMatrix) * camDir);
     // Cam Position
     vec3 camPos = vec3(0.);
-    vec3 camPosWorldSpace = vec3(pvwMat * vec4(camDir, 1.));
+    vec3 camPosWorldSpace = vec3(worldMatrix * vec4(camDir, 1.));
 
     // Plane Parameters
     vec3 N = vec3(0.,-1.,0.);
@@ -45,12 +43,16 @@ void main(void)
     if(t > 0.)
     {
          vec3 hit = camPosWorldSpace + camDirWorldSpace * t;
+         vec4 hitClip = projectionMatrix * viewMatrix * vec4(hit , 1.);
          float g = grid(hit,1.);
          if(g == 0.)
          {
-             gl_FragDepth = 1.;
+             gl_FragDepth = 0.;
              discard;
          }
+         float ndcDepth = hitClip.z / hitClip.w;
+         gl_FragDepth = ((gl_DepthRange.diff * ndcDepth) + gl_DepthRange.near + gl_DepthRange.far) / 2.;
+
          outColor = vec4(vec3(g), 1.);
     }
     else
