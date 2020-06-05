@@ -23,7 +23,7 @@ public:
 signals:
 
     void entitySelected(Entity *);
-    void onClick();
+    void onClick(Entity *entity = nullptr);    
 
 public slots:
 

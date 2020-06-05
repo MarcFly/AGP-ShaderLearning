@@ -44,7 +44,7 @@ bool Interaction::update()
     case State::MousePicking:
         //changed = mousePicking();
         render = true;
-        emit selection->onClick();
+        emit selection->onClick(selectedEntity);
     }
 
     return changed;
@@ -57,8 +57,7 @@ bool Interaction::idle()
         nextState = State::Navigating;
     }
     else if (input->mouseButtons[Qt::LeftButton] == MouseButtonState::Press)
-    {
-        // TODO: Left click
+    {        
         nextState = State::MousePicking;
     }
     else if(selection->count > 0)
@@ -173,6 +172,8 @@ void Interaction::passMeshes()
 bool Interaction::mousePicking()
 {
     OpenGLErrorGuard guard("MousePicking::render()");
+    selection->clear();
+    selectedEntity = nullptr;
     frameBuffer->bind();
     // Enable Blending of Buffers
     gl->glDisable(GL_BLEND);
@@ -189,6 +190,16 @@ bool Interaction::mousePicking()
 
     frameBuffer->release();
 
+    for (int i = 0; i<scene->entities.length();i++)
+    {
+        if (scene->entities[i]->color.x() == pixel[0] &&
+                scene->entities[i]->color.y() == pixel[1] &&
+                scene->entities[i]->color.z() == pixel[2])
+        {
+            selection->onEntitySelectedFromSceneView(scene->entities[i]);
+            selectedEntity = scene->entities[i];
+        }
+    }
 
     nextState = State::Idle;
     return true;

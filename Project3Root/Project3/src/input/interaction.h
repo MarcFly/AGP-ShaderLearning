@@ -2,6 +2,8 @@
 #define INTERACTION_H
 
 #include "rendering/gl.h"
+#include "src/ecs/entity.h"
+
 class FramebufferObject;
 class ShaderProgram;
 
@@ -33,6 +35,8 @@ private:
     ShaderProgram* mpProgram = nullptr;
     FramebufferObject* frameBuffer = nullptr;
     GLuint depthTexture;
+
+    Entity* selectedEntity = nullptr;
 
 
 

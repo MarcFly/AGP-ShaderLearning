@@ -8,9 +8,20 @@ Entity::Entity() :
     for (int i = 0; i < MAX_COMPONENTS; ++i)
         components[i] = nullptr;
     transform = new Transform;
-    //TODO RANDOM COLOR use max entity defined to create random numbers
-    color = QVector3D(1.0,0.0,0.0);    
+    //TODO RANDOM COLOR use max entity defined to create random numbers    
+
+    QVector3D randomColor;
+    for (int i = 0; i < 3;i++)
+    {
+        float color = MAX_ENTITIES/255.0f;
+        float randomNumber = generateRandomNumber(0,color);
+
+        randomColor[i] = randomNumber;
+    }
+    color = randomColor;
+    position = scene->numEntities();
 }
+
 Entity::Entity(Transform trans) : name("Entity")
 {
     for (int i = 0; i < MAX_COMPONENTS; ++i)
@@ -23,6 +34,13 @@ Entity::~Entity()
     delete transform;
     delete meshRenderer;
     delete lightSource;
+}
+
+float Entity::generateRandomNumber(int low, int high)
+{
+    // Random number between low and high
+    float ret = low + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(high-low)));
+    return ret;
 }
 
 Component *Entity::addComponent(ComponentType componentType)
@@ -146,6 +164,10 @@ void Entity::read(const QJsonObject &json)
         {
             this->active = j.value().toBool();
         }
+        else if (key == "position")
+        {
+            this->position = j.value().toInt();
+        }
     }
 
 }
@@ -154,6 +176,7 @@ void Entity::write(QJsonObject &json)
 {
     json["name"] = this->name;
     json["isActive"] = this->active;
+    json["position"] = this->position;
 
     if (transform != nullptr)
     {        

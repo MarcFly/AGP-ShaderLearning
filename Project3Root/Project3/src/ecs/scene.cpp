@@ -42,6 +42,11 @@ void Scene::removeEntityAt(int index)
 {
     delete entities[index];
     entities.removeAt(index);
+    //Update entities position
+    for (int i = 0; i < entities.length();i++)
+    {
+        entities[i]->position = i;
+    }
 }
 
 Component *Scene::findComponent(ComponentType ctype)

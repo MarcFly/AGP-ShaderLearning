@@ -1,5 +1,6 @@
 #include "selection.h"
 #include <cassert>
+#include "ui/hierarchywidget.h"
 
 
 Selection::Selection()
@@ -46,7 +47,8 @@ void Selection::onEntitySelectedFromSceneView(Entity *entity)
         count = 1;
     } else {
         count = 0;
-    }
+    }    
+
 }
 
 void Selection::onEntityRemovedFromEditor(Entity *entity)

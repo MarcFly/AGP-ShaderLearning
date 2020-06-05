@@ -120,7 +120,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(openGLWidget, SIGNAL(interacted()), this, SLOT(onEntityChangedInteractively()));
     connect(miscSettingsWidget, SIGNAL(settingsChanged()), this, SLOT(updateRender()));
 
-    connect(selection, SIGNAL(onClick()), this, SLOT(onEntitySelectedFromSceneView()));
+    connect(selection, SIGNAL(onClick(Entity*)), this, SLOT(onEntitySelectedFromSceneView(Entity*)));    
 
 
     hierarchyWidget->updateLayout();
@@ -344,8 +344,18 @@ void MainWindow::onEntitySelectedFromHierarchy(Entity *entity)
     openGLWidget->update();
 }
 
-void MainWindow::onEntitySelectedFromSceneView()
-{    
+void MainWindow::onEntitySelectedFromSceneView(Entity *entity)
+{        
+    if (entity != nullptr)
+    {
+        selection->onEntitySelectedFromSceneView(entity);
+        inspectorWidget->showEntity(entity);
+        hierarchyWidget->selectRow(entity->position);
+    }
+    else
+    {
+        updateEverything();
+    }
     openGLWidget->update();
 }
 
