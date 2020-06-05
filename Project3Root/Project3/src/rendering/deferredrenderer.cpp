@@ -100,11 +100,11 @@ void DeferredRenderer::initialize()
     outlineProgram->fragmentShaderFilename = "res/shaders/outline/outline.frag";
     outlineProgram->includeForSerialization = false;
 
-    gridProgram = resourceManager->createShaderProgram();
-    gridProgram->name = "Grid";
-    gridProgram->vertexShaderFilename = "res/shaders/grid-background/grid.vert";
-    gridProgram->fragmentShaderFilename = "res/shaders/grid-background/grid.frag";
-    gridProgram->includeForSerialization = false;
+    bggridProgram = resourceManager->createShaderProgram();
+    bggridProgram->name = "Grid";
+    bggridProgram->vertexShaderFilename = "res/shaders/grid-background/bggrid.vert";
+    bggridProgram->fragmentShaderFilename = "res/shaders/grid-background/bggrid.frag";
+    bggridProgram->includeForSerialization = false;
 
     // Create the main FBO
     fbo = new FramebufferObject;
@@ -323,54 +323,52 @@ void DeferredRenderer::resize(int w, int h)
     mboPrep(w,h);
 }
 
-void DeferredRenderer::render(Camera *camera)
+void DeferredRenderer::cleanBuffers()
 {
-    OpenGLErrorGuard guard("DeferredRenderer::render()");
+    // Clean Default
+    gl->glClearDepth(1.0);
+    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    // Clean Grid Background
+    gbbo->bind();
+    gl->glClearDepth(1.0);
+    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    gbbo->release();
 
-
-
-
-    // Clear color
+    // Clear Geometry
     gbo->bind();
     gl->glClearDepth(1.0);
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     gbo->release();
 
+    // Clear Lighting
 
+    // Clear Outline
 
+}
 
+void DeferredRenderer::render(Camera *camera)
+{
+    OpenGLErrorGuard guard("DeferredRenderer::render()");
+
+    // Clean Buffers () { clean all buffers};
+    cleanBuffers();
 
     // Passes
-    passGrid(camera);
 
     passMeshes(camera);
 
-    gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-
-    fbo->bind();
-
     passLighting();
-    fbo->release();
-    gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-
-
 
     if(shownTexture() == "LightSpheres")
         passDebugLights();
 
-
-
-    //gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-
-
     // Outline will always be just before the blit
     // Else it would be overwritten by other effects
+    passGrid(camera);
     passOutline(camera);
 
-    //fbo->bind();
     passBlit();
-    //fbo->release();
 }
 
 void DeferredRenderer::passGrid(Camera* camera)
@@ -385,7 +383,7 @@ void DeferredRenderer::passGrid(Camera* camera)
 
     gl->glDepthFunc(GL_LEQUAL);
 
-    QOpenGLShaderProgram& program = gridProgram->program;
+    QOpenGLShaderProgram& program = bggridProgram->program;
     if(program.bind())
     {
         program.setUniformValue("camParams", camera->getLeftRightBottomTop());
@@ -409,7 +407,7 @@ void DeferredRenderer::passBackground(Camera *camera)
 
     fbo->bind();
 
-    QOpenGLShaderProgram &program = bgProgram->program;
+    QOpenGLShaderProgram &program = bggridProgram->program;
     if(program.bind())
     {
         program.setUniformValue("worldMatrix", camera->worldMatrix);
@@ -643,6 +641,8 @@ void DeferredRenderer::passLighting()
     if(shownTexture() != "Final Render" && shownTexture() != "LightSpheres")
         return;
 
+    fbo->bind();
+
     QOpenGLShaderProgram &program = deferredProgram->program;
 
     gl->glDisable(GL_DEPTH_TEST);
@@ -716,6 +716,8 @@ void DeferredRenderer::passLighting()
     gl->glCullFace(GL_BACK);
     gl->glDisable(GL_BLEND);
     gl->glEnable(GL_DEPTH_TEST);
+
+    fbo->release();
 }
 
 void DeferredRenderer::passDebugLights()

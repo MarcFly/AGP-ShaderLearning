@@ -29,6 +29,8 @@ private:
     void mboPrep(int w, int h);
     void gbboPrep(int w, int h);
 
+    void cleanBuffers();
+
     void passMeshes(Camera *camera);
     void passLighting();
     void passBlit();
@@ -48,8 +50,7 @@ private:
     ShaderProgram *maskProgram = nullptr;
     ShaderProgram *outlineProgram = nullptr;
 
-    ShaderProgram *bgProgram = nullptr;
-    ShaderProgram* gridProgram = nullptr;
+    ShaderProgram* bggridProgram = nullptr;
 
     // MAIN Textures Needed
 

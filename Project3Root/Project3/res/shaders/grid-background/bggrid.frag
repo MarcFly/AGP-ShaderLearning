@@ -53,11 +53,16 @@ void main(void)
          float ndcDepth = hitClip.z / hitClip.w;
          gl_FragDepth = ((gl_DepthRange.diff * ndcDepth) + gl_DepthRange.near + gl_DepthRange.far) / 2.;
 
+         // Make it more black over distance
+         // value is hardcoded for now
+         g = g / (t / 10.);
          outColor = vec4(vec3(g), 1.);
     }
     else
     {
         gl_FragDepth = 1.;
         discard;
+
+        // Do background
     }
 }
