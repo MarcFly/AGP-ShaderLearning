@@ -94,15 +94,15 @@
     </widget>
    </item>
    <item>
-    <widget class="QGroupBox" name="groupBox_3">
+    <widget class="QGroupBox" name="GroupHints">
      <property name="title">
       <string>Editor visual hints</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_3">
       <item>
-       <widget class="QCheckBox" name="checkBoxGrid">
+       <widget class="QCheckBox" name="checkBoxLightSources">
         <property name="text">
-         <string>Grid (TODO)</string>
+         <string>Light sources</string>
         </property>
         <property name="checked">
          <bool>true</bool>
@@ -110,9 +110,9 @@
        </widget>
       </item>
       <item>
-       <widget class="QCheckBox" name="checkBoxLightSources">
+       <widget class="QCheckBox" name="checkBoxGrid">
         <property name="text">
-         <string>Light sources</string>
+         <string>Grid</string>
         </property>
         <property name="checked">
          <bool>true</bool>

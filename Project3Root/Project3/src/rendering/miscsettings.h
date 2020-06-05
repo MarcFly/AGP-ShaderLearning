@@ -14,6 +14,7 @@ public:
     bool renderLightSources = true;
 
     bool renderOutline = true;
+    bool renderGrid = true;
     float OutlineWidth = 1.;
     float OutlineAlpha = 1.;
 };

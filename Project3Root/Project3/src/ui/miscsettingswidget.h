@@ -28,7 +28,6 @@ public slots:
     void onVisualHintChanged();
     void onAmbientChanged(double);
 
-    void onOutlineStateChanged();
     void onOutlineWidthChanged(double);
     void onOutlineAlphaChanged(double);
 
