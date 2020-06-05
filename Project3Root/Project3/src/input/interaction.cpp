@@ -183,6 +183,10 @@ bool Interaction::mousePicking()
 
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     passMeshes();
+    GLfloat* pixel = (GLfloat*)malloc(sizeof(GLfloat)*3);
+    glReadPixels(input->mousex, camera->viewportHeight - input->mousey, 1, 1, GL_RGB, GL_FLOAT, pixel);
+    qDebug("%f,%f,%f", pixel[0],pixel[1], pixel[2]);
+
     frameBuffer->release();
 
 
