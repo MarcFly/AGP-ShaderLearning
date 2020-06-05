@@ -26,10 +26,20 @@ void Selection::select(Entity *entity)
         entities[0] = entity;
         count = 0;
     }
+
     emit entitySelected(entity);
 }
 
 void Selection::onEntitySelectedFromEditor(Entity *entity)
+{
+    if (entity != nullptr) {
+        entities[0] = entity;
+        count = 1;
+    } else {
+        count = 0;
+    }
+}
+void Selection::onEntitySelectedFromSceneView(Entity *entity)
 {
     if (entity != nullptr) {
         entities[0] = entity;
@@ -47,3 +57,4 @@ void Selection::onEntityRemovedFromEditor(Entity *entity)
         count = 0;
     }
 }
+

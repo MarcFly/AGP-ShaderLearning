@@ -8,6 +8,8 @@ Entity::Entity() :
     for (int i = 0; i < MAX_COMPONENTS; ++i)
         components[i] = nullptr;
     transform = new Transform;
+    //TODO RANDOM COLOR
+    color = QVector3D(1.0,0.0,0.0);
 }
 Entity::Entity(Transform trans) : name("Entity")
 {

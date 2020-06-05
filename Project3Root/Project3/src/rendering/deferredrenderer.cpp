@@ -41,6 +41,7 @@ DeferredRenderer::DeferredRenderer() :
     addTexture("Ambient");
     addTexture("LightSpheres");
     addTexture("MaskSelected");
+    addTexture("Mouse Picking");
 }
 
 DeferredRenderer::~DeferredRenderer()
@@ -668,6 +669,10 @@ void DeferredRenderer::passBlit()
         else if(shownTexture() == "MaskSelected")
         {
             gl->glBindTexture(GL_TEXTURE_2D, fboMask);
+        }        
+        else if(shownTexture() == "Mouse Picking")
+        {
+            gl->glBindTexture(GL_TEXTURE_2D, interaction->renderTexture);
         }
         else {
             gl->glBindTexture(GL_TEXTURE_2D, resourceManager->texWhite->textureId());

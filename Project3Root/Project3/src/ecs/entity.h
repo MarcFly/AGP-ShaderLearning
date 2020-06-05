@@ -23,6 +23,7 @@ public:
     void write(QJsonObject &json);
 
     QString name;
+    QVector3D color;
 
     union
     {
