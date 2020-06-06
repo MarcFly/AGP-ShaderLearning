@@ -28,7 +28,7 @@ private:
     void lboPrep(int w, int h);
     void mboPrep(int w, int h);
     void gbboPrep(int w, int h);
-
+    void gblurboPrep(int w, int h);
     void cleanBuffers();
 
     void passMeshes(Camera *camera);
@@ -36,6 +36,8 @@ private:
     void passBlit();
 
     void passDebugLights();
+
+    void passBlur(Camera* camera);
 
     void passOutline(Camera *camera);
 
@@ -51,6 +53,8 @@ private:
     ShaderProgram *outlineProgram = nullptr;
 
     ShaderProgram* bggridProgram = nullptr;
+
+    ShaderProgram* gaussianblurProgram = nullptr;
 
     // MAIN Textures Needed
 
@@ -82,6 +86,8 @@ private:
     FramebufferObject *obo = nullptr; // Outline buffer object
 
     FramebufferObject *gbbo = nullptr; // Gird & Background Buffer Object
+
+    FramebufferObject* gblurbo = nullptr;
 
 };
 

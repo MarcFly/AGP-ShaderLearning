@@ -13,10 +13,16 @@ public:
     float AMBIENT = 0.5f;
     bool renderLightSources = true;
 
+    // Editor Hints Controls
     bool renderOutline = true;
     bool renderGrid = true;
     float OutlineWidth = 1.;
     float OutlineAlpha = 1.;
+
+    // Blur Controls
+    bool globalBlur = true;
+    float blurVal = 1.;
+    int blurType = 0; // 0 = Gaussian
 };
 
 #endif // MISCSETTINGS_H

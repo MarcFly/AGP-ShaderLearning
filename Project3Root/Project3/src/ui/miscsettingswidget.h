@@ -31,6 +31,8 @@ public slots:
     void onOutlineWidthChanged(double);
     void onOutlineAlphaChanged(double);
 
+    void onBlurIntensityChanged(double);
+
 private:
     Ui::MiscSettingsWidget *ui;
 };

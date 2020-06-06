@@ -51,6 +51,7 @@ DeferredRenderer::~DeferredRenderer()
     delete mbo;
     delete obo;
     delete gbbo;
+    delete gblurbo;
 }
 
 void DeferredRenderer::initialize()
@@ -100,11 +101,21 @@ void DeferredRenderer::initialize()
     outlineProgram->fragmentShaderFilename = "res/shaders/outline/outline.frag";
     outlineProgram->includeForSerialization = false;
 
+    // Background & Grid program, writes over final scene the grid, testing by depth
     bggridProgram = resourceManager->createShaderProgram();
     bggridProgram->name = "Grid";
     bggridProgram->vertexShaderFilename = "res/shaders/grid-background/bggrid.vert";
     bggridProgram->fragmentShaderFilename = "res/shaders/grid-background/bggrid.frag";
     bggridProgram->includeForSerialization = false;
+
+    // Gaussian Blur Program, blur defined by a 10x10 kernel (fixed for now)
+    // Would be great to have a custom kernel blur system, but not for now
+
+    gaussianblurProgram = resourceManager->createShaderProgram();
+    gaussianblurProgram->name = "Grid";
+    gaussianblurProgram->vertexShaderFilename = "res/shaders/blur/blur.vert";
+    gaussianblurProgram->fragmentShaderFilename = "res/shaders/blur/gaussian.frag";
+    gaussianblurProgram->includeForSerialization = false;
 
     // Create the main FBO
     fbo = new FramebufferObject;
@@ -124,6 +135,9 @@ void DeferredRenderer::initialize()
 
     gbbo = new FramebufferObject;
     gbbo->create();
+
+    gblurbo = new FramebufferObject;
+    gblurbo->create();
 }
 
 void DeferredRenderer::finalize()
@@ -145,6 +159,26 @@ void DeferredRenderer::finalize()
 
     gbbo->destroy();
     delete gbbo;
+
+    gblurbo->destroy();
+    delete gblurbo;
+}
+
+void DeferredRenderer::gblurboPrep(int w, int h)
+{
+    // Reads from a specific texture to later write in to defined output
+    gblurbo->bind();
+    // This is initialized as such as we just want to add color attachments,
+    // It will depend on the texture used to generate the blur and the output
+    // With 2nd Texture, we can pass masks that affect the blur intensity
+    gblurbo->addColorAttachment(0, fboAmbient);
+    gblurbo->addColorAttachment(1, fboMask);
+    gblurbo->addColorAttachment(2, fboColor);
+    gblurbo->addDepthAttachment(fboDepth);
+    unsigned int attachments[3] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2};
+    gl->glDrawBuffers(3, attachments);
+    gblurbo->checkStatus();
+    gblurbo->release();
 }
 
 void DeferredRenderer::gbboPrep(int w, int h)
@@ -318,9 +352,15 @@ void DeferredRenderer::resize(int w, int h)
     gbboPrep(w,h);
     gboPrep(w,h);
 
+
+
     // Debug Preps
     lboPrep(w, h);
     mboPrep(w,h);
+
+    // Gaussian blur uses fboMask, needs to clean and create first
+    gblurboPrep(w,h);
+
 }
 
 void DeferredRenderer::cleanBuffers()
@@ -342,6 +382,11 @@ void DeferredRenderer::cleanBuffers()
     gbo->release();
 
     // Clear Lighting
+
+    gblurbo->bind();
+    gl->glClearDepth(1.0);
+    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    gblurbo->release();
 
     // Clear Outline
 
@@ -365,10 +410,98 @@ void DeferredRenderer::render(Camera *camera)
 
     // Outline will always be just before the blit
     // Else it would be overwritten by other effects
+
+
     passGrid(camera);
     passOutline(camera);
 
+    passBlur(camera);
+
     passBlit();
+}
+
+void DeferredRenderer::passBlur(Camera* camera)
+{
+    // To make things easier and not make it overcomplicated
+    if(!miscSettings->globalBlur && miscSettings->blurVal > 0.) return;
+
+    mbo->bind();
+    gl->glClearColor(0.,0.,0.,0.);
+    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    gl->glEnable(GL_DEPTH_TEST);
+    gl->glDepthMask(GL_FALSE);
+
+    {
+        // Create mask for the desired object
+        QOpenGLShaderProgram &program = maskProgram->program;
+        if(program.bind())
+        {
+            program.setUniformValue("outColor", 0);
+            gl->glActiveTexture(GL_TEXTURE0);
+            gl->glBindTexture(GL_TEXTURE_2D, fboMask);
+
+            program.setUniformValue("projectionMatrix", camera->projectionMatrix);
+
+
+            // Change entities from selected entities to all entities
+            for(int i = 0; selection->entities[i] != nullptr && i < MAX_SELECTED_ENTITIES; ++i)
+            {
+                Entity* et = selection->entities[i];
+                if(et->meshRenderer != nullptr)
+                {
+                    // Data to get position properly
+
+                    QMatrix4x4 worldViewMatrix = camera->viewMatrix * et->transform->matrix();
+                    program.setUniformValue("worldViewMatrix", worldViewMatrix);
+
+                    auto mr = et->meshRenderer->mesh;
+                    for(auto submesh : mr->submeshes)
+                    {
+                        // at later stages, it should search for materia to get bump map probably
+                        // Normal is required for it? idk, will add later if required
+
+                        submesh->draw();
+                    }
+                }
+
+            }
+        }
+    }
+    mbo->release();
+
+    // Blur is generated by a multiplier based on the pregenerated mask of objects
+    gl->glDisable(GL_DEPTH_TEST);
+
+
+    gblurbo->bind();
+    {
+        QOpenGLShaderProgram &program = gaussianblurProgram->program;
+        if(program.bind())
+        {
+            program.setUniformValue("outColor",0);
+            gl->glActiveTexture(GL_TEXTURE0);
+            gl->glBindTexture(GL_TEXTURE_2D, fboAmbient);
+
+            program.setUniformValue("mask", fboMask);
+            gl->glActiveTexture(GL_TEXTURE1);
+            gl->glBindTexture(GL_TEXTURE_2D, fboMask);
+
+            program.setUniformValue("inColor", 2);
+            gl->glActiveTexture(GL_TEXTURE2);
+            gl->glBindTexture(GL_TEXTURE_2D, fboColor);
+
+            program.setUniformValue("ratio", miscSettings->blurVal);
+            program.setUniformValue("viewP", camera->viewportWidth, camera->viewportHeight);
+
+            resourceManager->quad->submeshes[0]->draw();
+        }
+        gblurbo->release();
+    }
+
+    gl->glEnable(GL_DEPTH_TEST);
+    gl->glDepthMask(GL_TRUE);
+
 }
 
 void DeferredRenderer::passGrid(Camera* camera)

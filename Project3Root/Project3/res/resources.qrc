@@ -29,5 +29,7 @@
         <file>shaders/outline/outline.frag</file>
         <file>shaders/grid-background/bggrid.vert</file>
         <file>shaders/grid-background/bggrid.frag</file>
+        <file>shaders/blur/blur.vert</file>
+        <file>shaders/blur/gaussian.frag</file>
     </qresource>
 </RCC>
