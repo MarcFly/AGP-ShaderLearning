@@ -41,8 +41,7 @@ private:
 
     void passOutline(Camera *camera);
 
-    void passGrid(Camera* camera);
-    void passBackground(Camera* camera);
+    void passGridBackground(Camera* camera);
 
     // Shaders
     ShaderProgram *gpassProgram = nullptr;
@@ -75,6 +74,9 @@ private:
     // ONLY WRITE TO WHEN THE TEXTURE IS SELECTED
     ShaderProgram *debugSpheres = nullptr;
     GLuint lightSpheres = 0;
+
+    GLuint blurDebug = 0;
+
 
     // Framebuffers, defined for use
     FramebufferObject *fbo = nullptr; // Main FBO

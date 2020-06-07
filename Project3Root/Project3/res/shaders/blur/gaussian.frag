@@ -1,13 +1,13 @@
 #version 330 core
-layout(location=0) out vec4 outColor;
-uniform sampler2D mask;
-uniform sampler2D inColor;
+
+uniform sampler2D colorMap;
 
 uniform vec2 viewP;
+uniform vec2 dir;
 uniform float ratio;
 
 in vec2 texCoord;
-
+out vec4 outColor;
 // Kernel Calculator?
 // http://dev.theomader.com/gaussian-kernel-calculator/
 
@@ -26,31 +26,27 @@ void main()
     weights[7] = 0.113806;
     weights[6] = 0.13424;
 
-    // Double Pass
-    vec3 blurredCol= vec3(0.0);
-    //vec2 texCoords = gl_FragCoord.xy / viewP;
+    //vec3 blurredCol = vec3(0.0);
+    vec2 texCoords = gl_FragCoord.xy / viewP;
 
-    float val = texture2D(mask, texCoord).r;
-    vec3 baseCol = texture2D(inColor, texCoord).rgb;
+    vec3 baseCol = texture2D(colorMap, texCoords).rgb;
 
-    //if(val < .01) discard;
+    float minval = 1. / min(dir.x, dir.y);
+    vec2 dir_corrected = dir * minval;
 
-    for(int i = 0; i < 11; ++i)
+    float sumweights = 0.;
+    vec3 blurCol = vec3(0.);
+    vec2 uv = texCoord - dir_corrected * 5.;
+    for(int j = 0; j < 11; ++j)
     {
-        float sumweights = 0.;
-        vec3 stepCols = vec3(0.);
-        for(int j = 0; j < 11; ++j)
-        {
-            vec2 uv = texCoord + vec2(i, j);
-            stepCols += texture2D(inColor, uv).rgb * weights[j];
-            sumweights += weights[j];
-
-        }
-        stepCols /= sumweights;
-        blurredCol += stepCols;
+        blurCol += texture2D(colorMap, uv).rgb * weights[j];
+        uv += dir_corrected;
     }
+    blurCol /= sumweights;
 
-    vec3 finalCol = mix(baseCol, blurredCol, ratio);
-    outColor = vec4(blurredCol,1.);
+    vec3 finalCol = mix(baseCol, blurCol, ratio);
+    outColor = vec4(finalCol,1.);
+
+    outColor = vec4(1.,1.,1.,1.);
 
 }
