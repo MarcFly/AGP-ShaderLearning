@@ -31,6 +31,4 @@ void main()
 
     // Linear Falloff of focus
     WriteMask = clamp(abs(dist - FocusDist) / (FocusFalloff), 0., 1.);
-
-
 }

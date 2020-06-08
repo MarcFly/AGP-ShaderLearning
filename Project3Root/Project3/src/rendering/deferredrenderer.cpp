@@ -536,11 +536,10 @@ void DeferredRenderer::passBlur(GLuint WriteCol, GLuint ReadCol, GLuint Mask)
     gblurbo->addColorAttachment(0, WriteCol);
     gblurbo->addColorAttachment(1, ReadCol);
     gblurbo->addColorAttachment(2, Mask);
-    //gblurbo->addDepthAttachment(fboDepth);
-    unsigned int attachments[3] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+    gblurbo->addDepthAttachment(fboDepth);
+    unsigned int attachments[3] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2};
     gl->glDrawBuffers(3, attachments);
     gblurbo->checkStatus();
-
 
     QOpenGLShaderProgram &program = gaussianblurProgram->program;
     if(program.bind())
