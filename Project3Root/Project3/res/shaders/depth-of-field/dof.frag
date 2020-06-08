@@ -27,8 +27,10 @@ void main()
 
     float dist = length(worldSpace.xyz - camPos);
 
-    //if(dist > focusMin && dist < focusMax) discard;
+    if(dist > focusMin && dist < focusMax) discard;
 
     // Linear Falloff of focus
     WriteMask = clamp(abs(dist - FocusDist) / (FocusFalloff), 0., 1.);
+
+
 }

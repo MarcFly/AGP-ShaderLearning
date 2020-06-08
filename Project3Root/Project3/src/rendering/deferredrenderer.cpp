@@ -491,6 +491,7 @@ void DeferredRenderer::passDepthOfField()
     dofbo->bind();
 
     gl->glDisable(GL_DEPTH_TEST);
+    gl->glDepthMask(GL_FALSE);
     QOpenGLShaderProgram &program = depthOfFieldProgram->program;
     if(program.bind())
     {
@@ -512,9 +513,11 @@ void DeferredRenderer::passDepthOfField()
 
     dofbo->release();
 
-    //passBlur(fboColor, fboColor, dofMask);
+    passBlur(fboColor, fboColor, dofMask);
 
     gl->glEnable(GL_DEPTH_TEST);
+
+    gl->glDepthMask(GL_TRUE);
 
 }
 
@@ -523,6 +526,7 @@ void DeferredRenderer::passBlur(GLuint WriteCol, GLuint ReadCol, GLuint Mask)
     if(Mask == UINT_MAX) Mask = resourceManager->texWhite->textureId();
 
     gl->glDisable(GL_DEPTH_TEST);
+    gl->glDepthMask(GL_FALSE);
 
     gblurbo->bind();
     // This is initialized as such as we just want to add color attachments,
@@ -532,7 +536,7 @@ void DeferredRenderer::passBlur(GLuint WriteCol, GLuint ReadCol, GLuint Mask)
     gblurbo->addColorAttachment(0, WriteCol);
     gblurbo->addColorAttachment(1, ReadCol);
     gblurbo->addColorAttachment(2, Mask);
-    gblurbo->addDepthAttachment(fboDepth);
+    //gblurbo->addDepthAttachment(fboDepth);
     unsigned int attachments[3] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
     gl->glDrawBuffers(3, attachments);
     gblurbo->checkStatus();
@@ -565,10 +569,10 @@ void DeferredRenderer::passBlur(GLuint WriteCol, GLuint ReadCol, GLuint Mask)
         program.setUniformValue("dir", 1., 0.);
         resourceManager->quad->submeshes[0]->draw();
     }
-
-
-
     gblurbo->release();
+
+    gl->glDepthMask(GL_TRUE);
+    gl->glEnable(GL_DEPTH_TEST);
 }
 
 void DeferredRenderer::passBlurDebug()
