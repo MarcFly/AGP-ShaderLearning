@@ -489,8 +489,8 @@ void DeferredRenderer::passDepthOfField()
 
     OpenGLErrorGuard guard("DeferredRenderer::passDepthOfField()");
     dofbo->bind();
-    gl->glDisable(GL_DEPTH_TEST);
 
+    gl->glDisable(GL_DEPTH_TEST);
     QOpenGLShaderProgram &program = depthOfFieldProgram->program;
     if(program.bind())
     {
@@ -502,13 +502,17 @@ void DeferredRenderer::passDepthOfField()
         program.setUniformValue("FocusDepth", miscSettings->dofDepth);
         program.setUniformValue("FocusFalloff", miscSettings->dofFalloff);
         program.setUniformValue("zfar", camera->zfar);
+        program.setUniformValue("viewP", camera->viewportWidth, camera->viewportHeight);
+        program.setUniformValue("projectionMatrix", camera->projectionMatrix);
+        program.setUniformValue("viewMatrix", camera->viewMatrix);
+        program.setUniformValue("camPos", camera->position);
 
         resourceManager->quad->submeshes[0]->draw();
     }
 
     dofbo->release();
 
-    //passBlur(blurDebug, fboColor, dofMask);
+    //passBlur(fboColor, fboColor, dofMask);
 
     gl->glEnable(GL_DEPTH_TEST);
 
@@ -524,6 +528,7 @@ void DeferredRenderer::passBlur(GLuint WriteCol, GLuint ReadCol, GLuint Mask)
     // This is initialized as such as we just want to add color attachments,
     // It will depend on the texture used to generate the blur and the output
     // With 2nd Texture, we can pass masks that affect the blur intensity
+
     gblurbo->addColorAttachment(0, WriteCol);
     gblurbo->addColorAttachment(1, ReadCol);
     gblurbo->addColorAttachment(2, Mask);
@@ -531,6 +536,7 @@ void DeferredRenderer::passBlur(GLuint WriteCol, GLuint ReadCol, GLuint Mask)
     unsigned int attachments[3] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
     gl->glDrawBuffers(3, attachments);
     gblurbo->checkStatus();
+
 
     QOpenGLShaderProgram &program = gaussianblurProgram->program;
     if(program.bind())
