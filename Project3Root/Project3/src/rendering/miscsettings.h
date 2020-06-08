@@ -23,6 +23,14 @@ public:
     bool globalBlur = true;
     float blurVal = 1.;
     int blurType = 0; // 0 = Gaussian
+
+    // DOF Controls
+    float dofFocus = 5.;
+    float dofDepth = 2.;
+    float dofFalloff = 5.;
+    bool checkDOF = true;
+
+
 };
 
 #endif // MISCSETTINGS_H

@@ -27,6 +27,7 @@ MiscSettingsWidget::MiscSettingsWidget(QWidget *parent) :
 
     connect(ui->blurIntensity, SIGNAL(valueChanged(double)), this, SLOT(onBlurIntensityChanged(double)));
     connect(ui->globalBlur, SIGNAL(clicked()), this, SLOT(onVisualHintChanged()));
+
 }
 
 MiscSettingsWidget::~MiscSettingsWidget()
@@ -88,6 +89,9 @@ void MiscSettingsWidget::onVisualHintChanged()
     miscSettings->renderGrid = ui->checkBoxGrid->isChecked();
 
     miscSettings->globalBlur = ui->globalBlur->isChecked();
+
+    miscSettings->checkDOF = ui->globalDOF->isChecked();
+
     emit settingsChanged();
 }
 
@@ -100,5 +104,23 @@ void MiscSettingsWidget::onOutlineAlphaChanged(double val)
 void MiscSettingsWidget::onOutlineWidthChanged(double val)
 {
     miscSettings->OutlineWidth = val;
+    emit settingsChanged();
+}
+
+void MiscSettingsWidget::onDOFDistChanged(double val)
+{
+    miscSettings->dofDepth = val;
+    emit settingsChanged();
+}
+
+void MiscSettingsWidget::onDOFDepthChanged(double val)
+{
+    miscSettings->dofFocus = val;
+    emit settingsChanged();
+}
+
+void MiscSettingsWidget::onDOFFalloffChanged(double val)
+{
+    miscSettings->dofFalloff = val;
     emit settingsChanged();
 }

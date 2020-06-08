@@ -31,5 +31,7 @@
         <file>shaders/grid-background/bggrid.frag</file>
         <file>shaders/blur/blur.vert</file>
         <file>shaders/blur/gaussian.frag</file>
+        <file>shaders/depth-of-field/dof.frag</file>
+        <file>shaders/depth-of-field/dof.vert</file>
     </qresource>
 </RCC>

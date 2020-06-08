@@ -34,7 +34,7 @@ void main()
 
     vec2 texCoords = gl_FragCoord.xy / viewP;
 
-    vec3 baseCol = texture2D(colorMap, texCoords).rgb;
+    vec3 baseCol = texture2D(colorMap, texCoord).rgb;
     float maskval = texture2D(Mask, texCoords).r;
 
     float minval = 1. / min(dir.x, dir.y);
@@ -46,9 +46,16 @@ void main()
     vec2 uv = texCoord - dir_corrected * 5.;
     for(int j = 0; j < 11; ++j)
     {
-        blurCol += texture2D(colorMap, uv).rgb * weights[j];
+        // Maskn check that pixel if it is affected
+        // To make sure blur does not bleed too much into
+        // other areas, it leverages that effect around those
+        // unmasked areas
+
+        float maskn = texture2D(Mask, uv).r;
+
+        blurCol += texture2D(colorMap, uv).rgb * weights[j]*maskn;
         uv += dir_corrected;
-        sumweights += weights[j];
+        sumweights += (weights[j]*maskn);
     }
     blurCol /= sumweights;
 

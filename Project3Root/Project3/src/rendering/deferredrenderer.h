@@ -29,6 +29,7 @@ private:
     void mboPrep(int w, int h);
     void gbboPrep(int w, int h);
     void gblurboPrep(int w, int h);
+    void dofPrep(int w, int h);
     void cleanBuffers();
 
     void passMeshes(Camera *camera);
@@ -39,6 +40,8 @@ private:
 
     void passBlur(GLuint WriteCol, GLuint ReadCol, GLuint Mask = UINT_MAX);
     void passBlurDebug();
+
+    void passDepthOfField();
 
     void passOutline(Camera *camera);
 
@@ -56,6 +59,8 @@ private:
 
     ShaderProgram* gaussianblurProgram = nullptr;
 
+    ShaderProgram* depthOfFieldProgram = nullptr;
+
     // MAIN Textures Needed
 
     GLuint fboColor = 0;
@@ -70,6 +75,9 @@ private:
     // Outline Pass
     GLuint fboMask = 0;
     GLuint fboDepthMask = 0;
+
+    // Depth of Field Pass
+    GLuint dofMask = 0;
 
     // ONLY FOR DEBUG PURPOSES
     // ONLY WRITE TO WHEN THE TEXTURE IS SELECTED
@@ -91,6 +99,8 @@ private:
     FramebufferObject *gbbo = nullptr; // Gird & Background Buffer Object
 
     FramebufferObject* gblurbo = nullptr;
+
+    FramebufferObject* dofbo = nullptr;
 
 };
 

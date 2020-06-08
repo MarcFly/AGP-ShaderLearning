@@ -33,6 +33,10 @@ public slots:
 
     void onBlurIntensityChanged(double);
 
+    void onDOFDistChanged(double);
+    void onDOFDepthChanged(double);
+    void onDOFFalloffChanged(double);
+
 private:
     Ui::MiscSettingsWidget *ui;
 };
