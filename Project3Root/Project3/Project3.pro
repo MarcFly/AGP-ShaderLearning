@@ -114,6 +114,8 @@ DISTFILES += \
     res/shaders/blit.vert \
     res/shaders/forward_shading.frag \
     res/shaders/forward_shading.vert \
+    res/shaders/mouse_picking.frag \
+    res/shaders/mouse_picking.vert \
     res/shaders/texture_view.frag \
     res/shaders/texture_view.vert
 

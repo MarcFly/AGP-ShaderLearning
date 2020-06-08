@@ -31,6 +31,7 @@ public slots:
     void duplicateEntity();
     void removeEntity();
     void onItemClicked(QListWidgetItem *);
+    void selectRow(int i );
 
 private:
     Ui::HierarchyWidget *ui;

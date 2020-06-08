@@ -89,7 +89,7 @@ Entity* ModelImporter::import(const QString &path)
     processNode(scene->mRootNode, scene, myMesh, &myMaterials[0], &mySubmeshMaterials[0]);
 
     // Create an entity showing the mesh
-    Entity *entity = ::scene->addEntity();
+    Entity *entity = new Entity;
     entity->name = fileInfo.baseName();
     entity->addComponent(ComponentType::MeshRenderer);
     entity->meshRenderer->mesh = myMesh;

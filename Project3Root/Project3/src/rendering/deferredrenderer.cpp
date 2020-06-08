@@ -42,6 +42,7 @@ DeferredRenderer::DeferredRenderer() :
     addTexture("LightSpheres");
     addTexture("MaskSelected");
     addTexture("blurDebug");
+    addTexture("Mouse Picking");
 }
 
 DeferredRenderer::~DeferredRenderer()
@@ -870,6 +871,10 @@ void DeferredRenderer::passBlit()
         else if(shownTexture() == "MaskSelected")
         {
             gl->glBindTexture(GL_TEXTURE_2D, fboMask);
+        }        
+        else if(shownTexture() == "Mouse Picking")
+        {
+            gl->glBindTexture(GL_TEXTURE_2D, interaction->renderTexture);
         }
         else if(shownTexture() == "blurDebug")
         {

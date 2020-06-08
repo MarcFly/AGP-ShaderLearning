@@ -1,0 +1,12 @@
+{
+    "0": {
+        "MeshRenderer": {
+            "MeshFilePath": "D:/Documents/GitHub/AGP-ShaderLearning/Project3Root/Project3/res/models/Patrick/Patrick.obj"
+        },
+        "TransformComponent": {
+            "PosRotScale": "2,4,6,0,0,0,1,1,1,"
+        },
+        "isActive": true,
+        "name": "Patrick"
+    }
+}

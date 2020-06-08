@@ -94,6 +94,7 @@ void OpenGLWidget::initializeGL()
     gl->glEnable(GL_DEPTH_TEST);
 
     renderer->initialize();
+    interaction->init();
 }
 
 void OpenGLWidget::resizeGL(int w, int h)
@@ -101,6 +102,9 @@ void OpenGLWidget::resizeGL(int w, int h)
     camera->viewportWidth = w;
     camera->viewportHeight = h;
     renderer->resize(w, h);
+    interaction->generateBuffers(w,h);
+
+
 }
 
 void OpenGLWidget::paintGL()
@@ -108,6 +112,11 @@ void OpenGLWidget::paintGL()
     resourceManager->updateResources();
 
     camera->prepareMatrices();
+
+    if (interaction->render)
+    {
+        interaction->mousePicking();
+    }
 
     renderer->render(camera);
 }

@@ -10,11 +10,13 @@ class Entity
 public:
 
     Entity();
+    Entity(Transform trans);
     ~Entity();
 
     Component *addComponent(ComponentType ctype);
     Component *findComponent(ComponentType ctype);
     void removeComponent(Component *component);
+    float generateRandomNumber(int low, int high);
 
     Entity *clone() const;
 
@@ -22,6 +24,8 @@ public:
     void write(QJsonObject &json);
 
     QString name;
+    QVector3D color;
+    int position = -1;
 
     union
     {

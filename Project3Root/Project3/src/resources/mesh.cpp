@@ -200,8 +200,13 @@ void Mesh::destroy()
 
 void Mesh::read(const QJsonObject &json)
 {
+
+
 }
 
 void Mesh::write(QJsonObject &json)
 {
+    QJsonObject path;
+    path["MeshFilePath"] = this->getFilePath();
+    json.insert("MeshRenderer",path);
 }

@@ -120,7 +120,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(openGLWidget, SIGNAL(interacted()), this, SLOT(onEntityChangedInteractively()));
     connect(miscSettingsWidget, SIGNAL(settingsChanged()), this, SLOT(updateRender()));
 
-    connect(selection, SIGNAL(entitySelected(Entity *)), this, SLOT(onEntitySelectedFromSceneView(Entity *)));
+    connect(selection, SIGNAL(onClick(Entity*)), this, SLOT(onEntitySelectedFromSceneView(Entity*)));    
+
 
     hierarchyWidget->updateLayout();
     resourcesWidget->updateLayout();
@@ -166,7 +167,7 @@ void MainWindow::openProject()
 
 void MainWindow::saveProject()
 {
-    QString path = QFileDialog::getSaveFileName(this, "Save project", QString(), QString::fromLatin1("Json files (*.json)"));
+    QString path = "D:/Documents/GitHub/AGP-ShaderLearning/Project3Root/Scenes/test.json";// QFileDialog::getSaveFileName(this, "Save project", QString(), QString::fromLatin1("Json files (*.json)"));
     if (!path.isEmpty())
     {
         QFile saveFile(path);
@@ -247,8 +248,8 @@ void MainWindow::addPointLight()
     entity->name = "Point light";
     entity->addComponent(ComponentType::LightSource);
     entity->lightSource->type = LightSource::Type::Point;
-    entity->lightSource->intensity = 10.0f;
-    entity->lightSource->range = 20.0f;
+    entity->lightSource->intensity = 5.0f;
+    entity->lightSource->range = 10.0f;
     onEntityAdded(entity);
 }
 
@@ -269,6 +270,7 @@ void MainWindow::importModel()
 
     ModelImporter importer;
     Entity *entity = importer.import(path);
+    scene->entities.push_back(entity);
     onEntityAdded(entity);
 }
 
@@ -343,8 +345,17 @@ void MainWindow::onEntitySelectedFromHierarchy(Entity *entity)
 }
 
 void MainWindow::onEntitySelectedFromSceneView(Entity *entity)
-{
-    inspectorWidget->showEntity(entity);
+{        
+    if (entity != nullptr)
+    {
+        selection->onEntitySelectedFromSceneView(entity);
+        inspectorWidget->showEntity(entity);
+        hierarchyWidget->selectRow(entity->position);
+    }
+    else
+    {
+        updateEverything();
+    }
     openGLWidget->update();
 }
 

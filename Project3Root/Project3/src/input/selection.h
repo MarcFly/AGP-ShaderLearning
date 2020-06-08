@@ -23,11 +23,13 @@ public:
 signals:
 
     void entitySelected(Entity *);
+    void onClick(Entity *entity = nullptr);    
 
 public slots:
 
     void onEntitySelectedFromEditor(Entity *);
     void onEntityRemovedFromEditor(Entity *);
+    void onEntitySelectedFromSceneView(Entity *);
 };
 
 #endif // SELECTION_H

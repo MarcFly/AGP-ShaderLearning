@@ -3,6 +3,7 @@
 #include "ecs/scene.h"
 #include "globals.h"
 
+
 HierarchyWidget::HierarchyWidget(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::HierarchyWidget)
@@ -29,7 +30,12 @@ void HierarchyWidget::updateLayout()
         {
             ui->listWidget->addItem(scene->entityAt(i)->name);
         }
-    }
+    }    
+}
+
+void HierarchyWidget::selectRow(int i )
+{
+    ui->listWidget->setCurrentRow(i);
 }
 
 void HierarchyWidget::addEntity()
@@ -58,6 +64,7 @@ void HierarchyWidget::removeEntity()
         scene->removeEntityAt(index);
         emit entityRemoved(entity);
     }
+
 }
 
 void HierarchyWidget::onItemClicked(QListWidgetItem *)

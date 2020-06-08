@@ -36,6 +36,7 @@ void Material::handleResourcesAboutToDie()
 
 void Material::write(QJsonObject &json)
 {
+
 }
 
 void Material::read(const QJsonObject &json)
