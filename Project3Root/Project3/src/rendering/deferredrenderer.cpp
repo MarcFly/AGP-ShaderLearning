@@ -428,50 +428,69 @@ void DeferredRenderer::render(Camera *camera)
     passGridBackground(camera);
     passOutline(camera);
 
-    passBlur(camera);
+    if(shownTexture() == "blurDebug");
+        passBlurDebug();
 
     passBlit();
 }
 
-void DeferredRenderer::passBlur(Camera* camera)
+void DeferredRenderer::passBlur(GLuint WriteCol, GLuint ReadCol, GLuint Mask)
+{
+    if(Mask == UINT_MAX) Mask = resourceManager->texWhite->textureId();
+
+    gl->glDisable(GL_DEPTH_TEST);
+
+    gblurbo->bind();
+    // This is initialized as such as we just want to add color attachments,
+    // It will depend on the texture used to generate the blur and the output
+    // With 2nd Texture, we can pass masks that affect the blur intensity
+    gblurbo->addColorAttachment(0, WriteCol);
+    gblurbo->addColorAttachment(1, ReadCol);
+    gblurbo->addColorAttachment(2, Mask);
+    gblurbo->addDepthAttachment(fboDepth);
+    unsigned int attachments[3] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+    gl->glDrawBuffers(3, attachments);
+    gblurbo->checkStatus();
+
+    QOpenGLShaderProgram &program = gaussianblurProgram->program;
+    if(program.bind())
+    {
+        program.setUniformValue("outColor", 0);
+        gl->glActiveTexture(GL_TEXTURE0);
+        gl->glBindTexture(GL_TEXTURE_2D, WriteCol);
+
+        program.setUniformValue("colorMap", 1);
+        gl->glActiveTexture(GL_TEXTURE1);
+        gl->glBindTexture(GL_TEXTURE_2D, ReadCol);
+
+        program.setUniformValue("Mask", 2);
+        gl->glActiveTexture(GL_TEXTURE2);
+        gl->glBindTexture(GL_TEXTURE_2D, Mask);
+
+        program.setUniformValue("ratio", miscSettings->blurVal);
+        program.setUniformValue("viewP", camera->viewportWidth, camera->viewportHeight);
+
+        // Vertical Pass
+        program.setUniformValue("dir", 0., 1.);
+        resourceManager->quad->submeshes[0]->draw();
+
+
+        // Horizontal Pass
+        program.setUniformValue("dir", 1., 0.);
+        resourceManager->quad->submeshes[0]->draw();
+    }
+
+
+
+    gblurbo->release();
+}
+
+void DeferredRenderer::passBlurDebug()
 {
     // To make things easier and not make it overcomplicated
     if(!miscSettings->globalBlur && miscSettings->blurVal > 0.) return;
 
-    OpenGLErrorGuard guard("DeferredRenderer::passBlur()");
-
-    gl->glDisable(GL_DEPTH_TEST);
-    gl->glCullFace(GL_BACK);
-
-    gblurbo->bind();
-    {
-        QOpenGLShaderProgram &program = gaussianblurProgram->program;
-        if(program.bind())
-        {
-            program.setUniformValue("outColor", 0);
-            gl->glActiveTexture(GL_TEXTURE0);
-            gl->glBindTexture(GL_TEXTURE_2D, blurDebug);
-
-            program.setUniformValue("colorMap", 1);
-            gl->glActiveTexture(GL_TEXTURE1);
-            gl->glBindTexture(GL_TEXTURE_2D, fboColor);
-
-            program.setUniformValue("ratio", miscSettings->blurVal);
-            program.setUniformValue("viewP", camera->viewportWidth, camera->viewportHeight);
-
-            // Vertical Pass
-            program.setUniformValue("dir", 0., 1.);
-            resourceManager->quad->submeshes[0]->draw();
-
-
-            // Horizontal Pass
-            program.setUniformValue("dir", 1., 0.);
-            resourceManager->quad->submeshes[0]->draw();
-        }
-        gblurbo->release();
-    }
-
-    gl->glEnable(GL_DEPTH_TEST);
+    passBlur(blurDebug, fboColor);
 }
 
 void DeferredRenderer::passGridBackground(Camera* camera)

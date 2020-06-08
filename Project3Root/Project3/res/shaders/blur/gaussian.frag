@@ -3,6 +3,7 @@
 layout(location=0) out vec4 outColor;
 
 uniform sampler2D colorMap;
+uniform sampler2D Mask;
 
 uniform vec2 viewP;
 uniform vec2 dir;
@@ -34,6 +35,7 @@ void main()
     vec2 texCoords = gl_FragCoord.xy / viewP;
 
     vec3 baseCol = texture2D(colorMap, texCoords).rgb;
+    float maskval = texture2D(Mask, texCoords).r;
 
     float minval = 1. / min(dir.x, dir.y);
     vec2 dir_corrected = dir * minval / viewP;
@@ -50,7 +52,7 @@ void main()
     }
     blurCol /= sumweights;
 
-    vec3 finalCol = mix(baseCol, blurCol, ratio);
+    vec3 finalCol = mix(baseCol, blurCol, ratio*maskval);
     outColor = vec4(finalCol,1.);
 
 }

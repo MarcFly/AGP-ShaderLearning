@@ -37,7 +37,8 @@ private:
 
     void passDebugLights();
 
-    void passBlur(Camera* camera);
+    void passBlur(GLuint WriteCol, GLuint ReadCol, GLuint Mask = UINT_MAX);
+    void passBlurDebug();
 
     void passOutline(Camera *camera);
 
