@@ -1,6 +1,6 @@
 #version 330 core
 
-layout(location=0) out vec4 outColor;
+out vec4 outColor;
 
 uniform sampler2D colorMap;
 uniform sampler2D Mask;
@@ -10,8 +10,6 @@ uniform vec2 dir;
 uniform float ratio;
 
 in vec2 texCoord;
-
-//out vec4 outColor;
 
 // Kernel Calculator?
 // http://dev.theomader.com/gaussian-kernel-calculator/

@@ -1,6 +1,6 @@
 #version 330 core
 
-layout(location=0) out float WriteMask;
+out vec4 outColor;
 
 uniform float FocusDist;
 uniform float FocusDepth;
@@ -14,8 +14,8 @@ uniform vec3 camPos;
 
 void main()
 {
-    float focusMax = (FocusDepth*(.5) + FocusDist ) / zfar;
-    float focusMin = (FocusDepth*(-.5) + FocusDist) / zfar;
+    float focusMax = (FocusDepth*(.5) + FocusDist );
+    float focusMin = (FocusDepth*(-.5) + FocusDist);
 
     float d = gl_FragDepth * 2. - 1.;
     vec2 tCoord = gl_FragCoord.xy / viewP;
@@ -30,5 +30,5 @@ void main()
     if(dist > focusMin && dist < focusMax) discard;
 
     // Linear Falloff of focus
-    WriteMask = clamp(abs(dist - FocusDist) / (FocusFalloff), 0., 1.);
+    outColor = vec4(clamp(abs(dist - FocusDist) / (FocusFalloff), 0., 1.));
 }

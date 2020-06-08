@@ -38,7 +38,7 @@ private:
 
     void passDebugLights();
 
-    void passBlur(GLuint WriteCol, GLuint ReadCol, GLuint Mask = UINT_MAX);
+    void passBlur(GLuint ReadCol, GLuint Mask = UINT_MAX);
     void passBlurDebug();
 
     void passDepthOfField();
@@ -77,6 +77,7 @@ private:
     GLuint fboDepthMask = 0;
 
     // Depth of Field Pass
+    GLuint stepBlur = 0;
     GLuint dofMask = 0;
 
     // ONLY FOR DEBUG PURPOSES

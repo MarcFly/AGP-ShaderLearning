@@ -202,12 +202,9 @@ void DeferredRenderer::gblurboPrep(int w, int h)
     // This is initialized as such as we just want to add color attachments,
     // It will depend on the texture used to generate the blur and the output
     // With 2nd Texture, we can pass masks that affect the blur intensity
-    gblurbo->addColorAttachment(0, blurDebug);
-    gblurbo->addColorAttachment(1, fboColor);
-    gblurbo->addColorAttachment(2, fboMask);
+    gblurbo->addColorAttachment(0, stepBlur);
+    gblurbo->addColorAttachment(1, blurDebug);
     gblurbo->addDepthAttachment(fboDepth);
-    unsigned int attachments[3] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,GL_COLOR_ATTACHMENT2};
-    gl->glDrawBuffers(3, attachments);
     gblurbo->checkStatus();
     gblurbo->release();
 }
@@ -469,7 +466,7 @@ void DeferredRenderer::render(Camera *camera)
     if(shownTexture() == "LightSpheres")
         passDebugLights();
 
-    passDepthOfField();
+
 
     // Outline will always be just before the blit
     // Else it would be overwritten by other effects
@@ -480,6 +477,8 @@ void DeferredRenderer::render(Camera *camera)
 
     if(shownTexture() == "blurDebug")
         passBlurDebug();
+
+    passDepthOfField();
 
     passBlit();
 }
@@ -521,7 +520,7 @@ void DeferredRenderer::passDepthOfField()
 
 }
 
-void DeferredRenderer::passBlur(GLuint WriteCol, GLuint ReadCol, GLuint Mask)
+void DeferredRenderer::passBlur(GLuint ReadCol, GLuint Mask)
 {
     if(Mask == UINT_MAX) Mask = resourceManager->texWhite->textureId();
 
@@ -533,38 +532,37 @@ void DeferredRenderer::passBlur(GLuint WriteCol, GLuint ReadCol, GLuint Mask)
     // It will depend on the texture used to generate the blur and the output
     // With 2nd Texture, we can pass masks that affect the blur intensity
 
-    gblurbo->addColorAttachment(0, WriteCol);
-    gblurbo->addColorAttachment(1, ReadCol);
-    gblurbo->addColorAttachment(2, Mask);
-    gblurbo->addDepthAttachment(fboDepth);
-    unsigned int attachments[3] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2};
-    gl->glDrawBuffers(3, attachments);
-    gblurbo->checkStatus();
-
     QOpenGLShaderProgram &program = gaussianblurProgram->program;
     if(program.bind())
     {
-        program.setUniformValue("outColor", 0);
-        gl->glActiveTexture(GL_TEXTURE0);
-        gl->glBindTexture(GL_TEXTURE_2D, WriteCol);
 
-        program.setUniformValue("colorMap", 1);
-        gl->glActiveTexture(GL_TEXTURE1);
+        // Bind a Temp Value tro write the first texture
+
+
+        // Read from original image
+        program.setUniformValue("colorMap", 0);
+        gl->glActiveTexture(GL_TEXTURE0);
         gl->glBindTexture(GL_TEXTURE_2D, ReadCol);
 
-        program.setUniformValue("Mask", 2);
-        gl->glActiveTexture(GL_TEXTURE2);
+        program.setUniformValue("Mask", 1);
+        gl->glActiveTexture(GL_TEXTURE1);
         gl->glBindTexture(GL_TEXTURE_2D, Mask);
 
         program.setUniformValue("ratio", miscSettings->blurVal);
         program.setUniformValue("viewP", camera->viewportWidth, camera->viewportHeight);
 
         // Vertical Pass
+
+        gl->glDrawBuffer(GL_COLOR_ATTACHMENT0); // We write to StepBlur (1st Step)
+
         program.setUniformValue("dir", 0., 1.);
         resourceManager->quad->submeshes[0]->draw();
 
 
         // Horizontal Pass
+
+        gl->glDrawBuffer(GL_COLOR_ATTACHMENT1); // We write to blurDebug (final Step)
+
         program.setUniformValue("dir", 1., 0.);
         resourceManager->quad->submeshes[0]->draw();
     }
@@ -932,6 +930,9 @@ void DeferredRenderer::passBlit()
 
     if (program.bind())
     {
+        program.setUniformValue("blitAlpha", false);
+        program.setUniformValue("blitDepth", false);
+
         program.setUniformValue("colorTexture", 0);
         gl->glActiveTexture(GL_TEXTURE0);
 
@@ -939,6 +940,7 @@ void DeferredRenderer::passBlit()
             gl->glBindTexture(GL_TEXTURE_2D, fboColor);
         }
         else if(shownTexture() == "Depth"){
+            program.setUniformValue("blitDepth", true);
             gl->glBindTexture(GL_TEXTURE_2D, fboDepth);
         }
         else if(shownTexture() == "Position"){
@@ -970,6 +972,7 @@ void DeferredRenderer::passBlit()
         }
         else if(shownTexture() == "DOFMask")
         {
+            program.setUniformValue("blitDepth", false);
             gl->glBindTexture(GL_TEXTURE_2D, dofMask);
         }
         else {
