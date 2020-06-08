@@ -44,7 +44,9 @@ void main(void)
     {
          vec3 hit = camPosWorldSpace + camDirWorldSpace * t;
          vec4 hitClip = projectionMatrix * viewMatrix * vec4(hit , 1.);
-         float g = grid(hit,10.);
+         float g = grid(hit,100.);
+         if(g == 0)
+             g = grid(hit, 10.) * .7;
          if(g == 0)
              g = grid(hit, 1.) * .2;
          float ndcDepth = hitClip.z / hitClip.w;
@@ -52,12 +54,13 @@ void main(void)
 
          // Make it more black over distance
          // value is hardcoded for now
+
          float col = clamp(g / (t / 100.), .1, 1.);
 
          if(g == 0.)
          {
              gl_FragDepth = 1.;
-             col = .1;
+             col = .05;
              //discard;
          }
 

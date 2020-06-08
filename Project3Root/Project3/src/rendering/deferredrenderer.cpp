@@ -395,6 +395,7 @@ void DeferredRenderer::cleanBuffers()
 
     // Clear Lighting
 
+    // Clear Blur fbo
     gblurbo->bind();
     gl->glClearDepth(1.0);
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -415,8 +416,6 @@ void DeferredRenderer::render(Camera *camera)
 
     passMeshes(camera);
 
-    passBlur(camera);
-
     passLighting();
 
     if(shownTexture() == "LightSpheres")
@@ -429,7 +428,7 @@ void DeferredRenderer::render(Camera *camera)
     passGridBackground(camera);
     passOutline(camera);
 
-
+    passBlur(camera);
 
     passBlit();
 }
@@ -442,13 +441,14 @@ void DeferredRenderer::passBlur(Camera* camera)
     OpenGLErrorGuard guard("DeferredRenderer::passBlur()");
 
     gl->glDisable(GL_DEPTH_TEST);
+    gl->glCullFace(GL_BACK);
 
     gblurbo->bind();
     {
         QOpenGLShaderProgram &program = gaussianblurProgram->program;
         if(program.bind())
         {
-            program.setUniformValue("outColor",0);
+            program.setUniformValue("outColor", 0);
             gl->glActiveTexture(GL_TEXTURE0);
             gl->glBindTexture(GL_TEXTURE_2D, blurDebug);
 
@@ -461,7 +461,7 @@ void DeferredRenderer::passBlur(Camera* camera)
 
             // Vertical Pass
             program.setUniformValue("dir", 0., 1.);
-            //resourceManager->quad->submeshes[0]->draw();
+            resourceManager->quad->submeshes[0]->draw();
 
 
             // Horizontal Pass
@@ -502,6 +502,7 @@ void DeferredRenderer::passGridBackground(Camera* camera)
     gbbo->release();
 
     gl->glDisable(GL_BLEND);
+    gl->glDisable(GL_DEPTH_TEST);
 }
 
 void DeferredRenderer::passOutline(Camera *camera)
@@ -806,11 +807,13 @@ void DeferredRenderer::passLighting()
 
 void DeferredRenderer::passDebugLights()
 {
+    /*
     lbo->bind();
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
     lbo->release();
+    */
 }
 
 void DeferredRenderer::passBlit()

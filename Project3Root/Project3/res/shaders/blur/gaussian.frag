@@ -1,5 +1,7 @@
 #version 330 core
 
+layout(location=0) out vec4 outColor;
+
 uniform sampler2D colorMap;
 
 uniform vec2 viewP;
@@ -7,12 +9,15 @@ uniform vec2 dir;
 uniform float ratio;
 
 in vec2 texCoord;
-out vec4 outColor;
+
+//out vec4 outColor;
+
 // Kernel Calculator?
 // http://dev.theomader.com/gaussian-kernel-calculator/
 
 void main()
 {
+
     float weights[11];
     weights[0] = 0.035822;
     weights[1] = 0.05879;
@@ -26,13 +31,13 @@ void main()
     weights[7] = 0.113806;
     weights[6] = 0.13424;
 
-    //vec3 blurredCol = vec3(0.0);
     vec2 texCoords = gl_FragCoord.xy / viewP;
 
     vec3 baseCol = texture2D(colorMap, texCoords).rgb;
 
     float minval = 1. / min(dir.x, dir.y);
-    vec2 dir_corrected = dir * minval;
+    vec2 dir_corrected = dir * minval / viewP;
+    dir_corrected = dir / viewP;
 
     float sumweights = 0.;
     vec3 blurCol = vec3(0.);
@@ -41,12 +46,11 @@ void main()
     {
         blurCol += texture2D(colorMap, uv).rgb * weights[j];
         uv += dir_corrected;
+        sumweights += weights[j];
     }
     blurCol /= sumweights;
 
     vec3 finalCol = mix(baseCol, blurCol, ratio);
     outColor = vec4(finalCol,1.);
-
-    outColor = vec4(1.,1.,1.,1.);
 
 }
