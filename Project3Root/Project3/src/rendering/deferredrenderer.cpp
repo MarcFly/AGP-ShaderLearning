@@ -364,10 +364,7 @@ void DeferredRenderer::mboPrep(int w, int h)
 
     obo->bind();
     obo->addColorAttachment(0, fboColor);
-    obo->addColorAttachment(1, fboMask);
     obo->addDepthAttachment(fboDepthMask);
-    unsigned int attachments[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
-    gl->glDrawBuffers(2, attachments);
     obo->checkStatus();
     obo->release();
 
@@ -637,10 +634,6 @@ void DeferredRenderer::passOutline(Camera *camera)
         QOpenGLShaderProgram &program = maskProgram->program;
         if(program.bind())
         {
-            program.setUniformValue("outColor", 0);
-            gl->glActiveTexture(GL_TEXTURE0);
-            gl->glBindTexture(GL_TEXTURE_2D, fboMask);
-
             program.setUniformValue("projectionMatrix", camera->projectionMatrix);
 
             for(int i = 0; selection->entities[i] != nullptr && i < MAX_SELECTED_ENTITIES; ++i)
@@ -679,12 +672,8 @@ void DeferredRenderer::passOutline(Camera *camera)
         QOpenGLShaderProgram &program = outlineProgram->program;
         if(program.bind())
         {
-            program.setUniformValue("outColor", 0);
+            program.setUniformValue("mask", 0);
             gl->glActiveTexture(GL_TEXTURE0);
-            gl->glBindTexture(GL_TEXTURE_2D, fboColor);
-
-            program.setUniformValue("mask", 1);
-            gl->glActiveTexture(GL_TEXTURE1);
             gl->glBindTexture(GL_TEXTURE_2D, fboMask);
 
             program.setUniformValue("viewP", camera->viewportWidth, camera->viewportHeight);
