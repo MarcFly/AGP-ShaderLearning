@@ -41,7 +41,7 @@ private:
     void passBlur(GLuint ReadCol, GLuint Mask = UINT_MAX);
     void passBlurDebug();
 
-    void passDepthOfField();
+    void passDepthOfField(Camera* camera);
 
     void passOutline(Camera *camera);
 
@@ -77,7 +77,6 @@ private:
     GLuint fboDepthMask = 0;
 
     // Depth of Field Pass
-    GLuint stepBlur = 0;
     GLuint dofMask = 0;
 
     // ONLY FOR DEBUG PURPOSES

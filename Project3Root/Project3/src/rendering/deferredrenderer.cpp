@@ -380,11 +380,11 @@ void DeferredRenderer::dofPrep(int w, int h)
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w, h, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
+    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, w, h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 
     dofbo->bind();
     dofbo->addColorAttachment(0, dofMask);
-    dofbo->addDepthAttachment(fboDepth);
+    dofbo->addDepthAttachment(fboDepthMask);
     dofbo->checkStatus();
     dofbo->release();
 }
@@ -396,7 +396,7 @@ void DeferredRenderer::resize(int w, int h)
     fboPrep(w,h);
     gbboPrep(w,h);
     gboPrep(w,h);
-    dofPrep(w,h);
+
 
 
     // Debug Preps
@@ -405,6 +405,8 @@ void DeferredRenderer::resize(int w, int h)
 
     // Gaussian blur uses fboMask, needs to clean and create first
     gblurboPrep(w,h);
+
+    dofPrep(w,h);
 
 
 }
@@ -484,24 +486,26 @@ void DeferredRenderer::render(Camera *camera)
     if(shownTexture() == "blurDebug" && !miscSettings->checkDOF)
         passBlurDebug();
     else if(shownTexture() == "blurDebug")
-        passDepthOfField();
+        passDepthOfField(camera);
 
     passBlit();
 }
 
-void DeferredRenderer::passDepthOfField()
+void DeferredRenderer::passDepthOfField(Camera* camera)
 {
 
     OpenGLErrorGuard guard("DeferredRenderer::passDepthOfField()");
     dofbo->bind();
 
+    gl->glClearColor(0.,0.,0.,0.);
+    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
     gl->glDisable(GL_DEPTH_TEST);
-    //gl->glDepthMask(GL_FALSE);
+    gl->glDepthMask(GL_FALSE);
+
     QOpenGLShaderProgram &program = depthOfFieldProgram->program;
     if(program.bind())
     {
-        gl->glDrawBuffer(GL_COLOR_ATTACHMENT0);
-
         program.setUniformValue("depth", 0);
         gl->glActiveTexture(GL_TEXTURE0);
         gl->glBindTexture(GL_TEXTURE_2D, fboDepth);
@@ -509,12 +513,9 @@ void DeferredRenderer::passDepthOfField()
         program.setUniformValue("FocusDist", miscSettings->dofFocus);
         program.setUniformValue("FocusDepth", miscSettings->dofDepth);
         program.setUniformValue("FocusFalloff", miscSettings->dofFalloff);
-        program.setUniformValue("zfar", camera->zfar);
         program.setUniformValue("viewP", camera->viewportWidth, camera->viewportHeight);
-        program.setUniformValue("projectionMatrix", camera->projectionMatrix);
-        program.setUniformValue("viewMatrix", camera->viewMatrix);
-        program.setUniformValue("camPos", camera->position);
-
+        program.setUniformValue("zfar", camera->zfar);
+        program.setUniformValue("znear", camera->znear);
         resourceManager->quad->submeshes[0]->draw();
     }
 
@@ -523,7 +524,6 @@ void DeferredRenderer::passDepthOfField()
     passBlur(fboColor, dofMask);
 
     gl->glEnable(GL_DEPTH_TEST);
-
     gl->glDepthMask(GL_TRUE);
 }
 
@@ -531,10 +531,13 @@ void DeferredRenderer::passBlur(GLuint ReadCol, GLuint Mask)
 {
     if(Mask == UINT_MAX) Mask = resourceManager->texWhite->textureId();
 
+    OpenGLErrorGuard guard("DeferredRenderer::passBlur()");
+
     gl->glDisable(GL_DEPTH_TEST);
-    //gl->glDepthMask(GL_FALSE);
+    gl->glDepthMask(GL_FALSE);
 
     gblurbo->bind();
+
     // This is initialized as such as we just want to add color attachments,
     // It will depend on the texture used to generate the blur and the output
     // With 2nd Texture, we can pass masks that affect the blur intensity
@@ -543,10 +546,6 @@ void DeferredRenderer::passBlur(GLuint ReadCol, GLuint Mask)
     QOpenGLShaderProgram &program = gaussianblurProgram->program;
     if(program.bind())
     {
-
-        // Bind a Temp Value tro write the first texture
-
-
         // Read from original image
         program.setUniformValue("colorMap", 0);
         gl->glActiveTexture(GL_TEXTURE0);
