@@ -35,9 +35,8 @@ void main()
     vec3 baseCol = texture2D(colorMap, texCoord).rgb;
     float maskval = clamp(texture2D(Mask, texCoords).r, 0., 1.);
 
-    float minval = 1. / min(dir.x, dir.y);
-    vec2 dir_corrected = dir * minval / viewP;
-    dir_corrected = dir / viewP;
+    vec2 dir_corrected = normalize(dir) / viewP;
+    //dir_corrected = dir / viewP;
 
     float sumweights = 0.;
     vec3 blurCol = vec3(0.);

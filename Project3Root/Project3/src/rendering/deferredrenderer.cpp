@@ -40,10 +40,11 @@ DeferredRenderer::DeferredRenderer() :
     addTexture("Depth");
     addTexture("Ambient");
     addTexture("LightSpheres");
-    addTexture("MaskSelected");
+    addTexture("MaskOutline");
     addTexture("blurDebug");
     addTexture("Mouse Picking");
     addTexture("DOFMask");
+    addTexture("White");
 }
 
 DeferredRenderer::~DeferredRenderer()
@@ -202,8 +203,8 @@ void DeferredRenderer::gblurboPrep(int w, int h)
     // This is initialized as such as we just want to add color attachments,
     // It will depend on the texture used to generate the blur and the output
     // With 2nd Texture, we can pass masks that affect the blur intensity
-    gblurbo->addColorAttachment(0, stepBlur);
-    gblurbo->addColorAttachment(1, blurDebug);
+    gblurbo->addColorAttachment(0, blurDebug);
+    gblurbo->addColorAttachment(1, stepBlur);
     gblurbo->addDepthAttachment(fboDepth);
     gblurbo->checkStatus();
     gblurbo->release();
@@ -383,7 +384,7 @@ void DeferredRenderer::dofPrep(int w, int h)
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w, h, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
+    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, w, h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 
     dofbo->bind();
     dofbo->addColorAttachment(0, dofMask);
@@ -478,7 +479,7 @@ void DeferredRenderer::render(Camera *camera)
     if(shownTexture() == "blurDebug")
         passBlurDebug();
 
-    passDepthOfField();
+    //passDepthOfField();
 
     passBlit();
 }
@@ -517,7 +518,6 @@ void DeferredRenderer::passDepthOfField()
     gl->glEnable(GL_DEPTH_TEST);
 
     gl->glDepthMask(GL_TRUE);
-
 }
 
 void DeferredRenderer::passBlur(GLuint ReadCol, GLuint Mask)
@@ -553,15 +553,20 @@ void DeferredRenderer::passBlur(GLuint ReadCol, GLuint Mask)
 
         // Vertical Pass
 
-        gl->glDrawBuffer(GL_COLOR_ATTACHMENT0); // We write to StepBlur (1st Step)
+        gl->glDrawBuffer(GL_COLOR_ATTACHMENT1); // We write to StepBlur (1st Step)
 
         program.setUniformValue("dir", 0., 1.);
         resourceManager->quad->submeshes[0]->draw();
 
-
         // Horizontal Pass
 
-        gl->glDrawBuffer(GL_COLOR_ATTACHMENT1); // We write to blurDebug (final Step)
+        gl->glDrawBuffer(GL_COLOR_ATTACHMENT0);
+
+        // idea is to read first written buffer to calc 2nd pass of blur
+        // Prints to black as if stepBlur not being written although it is
+        // Read from a color attachment gives issues seemingly
+        gl->glActiveTexture(GL_TEXTURE0);
+        gl->glBindTexture(GL_TEXTURE_2D, stepBlur);
 
         program.setUniformValue("dir", 1., 0.);
         resourceManager->quad->submeshes[0]->draw();
@@ -577,7 +582,7 @@ void DeferredRenderer::passBlurDebug()
     // To make things easier and not make it overcomplicated
     if(!miscSettings->globalBlur && miscSettings->blurVal > 0.) return;
 
-    passBlur(blurDebug, fboColor);
+    passBlur(fboColor);
 }
 
 void DeferredRenderer::passGridBackground(Camera* camera)
@@ -958,7 +963,7 @@ void DeferredRenderer::passBlit()
         else if(shownTexture() == "LightSpheres"){
             gl->glBindTexture(GL_TEXTURE_2D, lightSpheres);
         }
-        else if(shownTexture() == "MaskSelected")
+        else if(shownTexture() == "MaskOutline")
         {
             gl->glBindTexture(GL_TEXTURE_2D, fboMask);
         }
@@ -972,7 +977,7 @@ void DeferredRenderer::passBlit()
         }
         else if(shownTexture() == "DOFMask")
         {
-            program.setUniformValue("blitDepth", false);
+            program.setUniformValue("blitDepth", true);
             gl->glBindTexture(GL_TEXTURE_2D, dofMask);
         }
         else {
