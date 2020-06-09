@@ -208,14 +208,14 @@
           <string>Blur Controls</string>
          </property>
          <layout class="QGridLayout" name="gridLayout_2">
-          <item row="2" column="0">
+          <item row="1" column="0">
            <widget class="QLabel" name="label_8">
             <property name="text">
              <string>Intensity</string>
             </property>
            </widget>
           </item>
-          <item row="2" column="1">
+          <item row="1" column="1">
            <widget class="QDoubleSpinBox" name="blurIntensity">
             <property name="maximum">
              <double>1.000000000000000</double>
@@ -225,16 +225,6 @@
             </property>
             <property name="value">
              <double>1.000000000000000</double>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="0">
-           <widget class="QCheckBox" name="globalBlur">
-            <property name="text">
-             <string>Global Blur</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
             </property>
            </widget>
           </item>

@@ -26,8 +26,11 @@ MiscSettingsWidget::MiscSettingsWidget(QWidget *parent) :
     connect(ui->OutlineWidthSpinBox, SIGNAL(valueChanged(double)), this, SLOT(onOutlineWidthChanged(double)));
 
     connect(ui->blurIntensity, SIGNAL(valueChanged(double)), this, SLOT(onBlurIntensityChanged(double)));
-    connect(ui->globalBlur, SIGNAL(clicked()), this, SLOT(onVisualHintChanged()));
 
+    connect(ui->globalDOF, SIGNAL(clicked()), this, SLOT(onVisualHintChanged()));
+    connect(ui->distSpin, SIGNAL(valueChanged(double)), this, SLOT(onDOFDistChanged(double)));
+    connect(ui->depthSpin, SIGNAL(valueChanged(double)), this, SLOT(onDOFDepthChanged(double)));
+    connect(ui->falloffSpin, SIGNAL(valueChanged(double)), this, SLOT(onDOFFalloffChanged(double)));
 }
 
 MiscSettingsWidget::~MiscSettingsWidget()
@@ -87,8 +90,6 @@ void MiscSettingsWidget::onVisualHintChanged()
     miscSettings->renderLightSources = ui->checkBoxLightSources->isChecked();
     miscSettings->renderOutline = ui->checkBoxSelectionOutline->isChecked();
     miscSettings->renderGrid = ui->checkBoxGrid->isChecked();
-
-    miscSettings->globalBlur = ui->globalBlur->isChecked();
 
     miscSettings->checkDOF = ui->globalDOF->isChecked();
 

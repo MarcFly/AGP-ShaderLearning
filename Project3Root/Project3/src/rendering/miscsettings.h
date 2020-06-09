@@ -20,7 +20,6 @@ public:
     float OutlineAlpha = 1.;
 
     // Blur Controls
-    bool globalBlur = true;
     float blurVal = 1.;
     int blurType = 0; // 0 = Gaussian
 

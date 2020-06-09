@@ -1,6 +1,6 @@
 #version 330 core
 
-out vec4 outColor;
+layout(location=0) out float outColor;
 
 uniform float FocusDist;
 uniform float FocusDepth;
@@ -21,6 +21,19 @@ void main()
     float cDepth = FocusDepth / diff;
     float cFalloff = FocusFalloff / diff;
 
-    outColor = vec4(max(0, gl_FragDepth - cDist - cDepth) / ((cDist + (cDepth /2.)+cFalloff) - cDepth));
+    vec2 texCoord = gl_FragCoord.xy / viewP;
+    float texel = texture2D(depth, texCoord).r;
+
+    float f = 10000.0;
+    float n = 0.01;
+    float z = abs((2 * f * n) / ((texel * 2.0 - 1.0) *(f-n)-(f+n)));
+    z = ((z / 50.0));
+    //outColor = z;
+    outColor = (max(0, z - cDist - cDepth) / ((cDist + (cDepth /2.)+cFalloff) - cDepth))*diff;
+
+    //outColor *= 1000000.;
+    //outColor = 1.;
+
+//*/
 
 }
