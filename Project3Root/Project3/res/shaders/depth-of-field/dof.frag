@@ -16,29 +16,11 @@ uniform sampler2D depth;
 
 void main()
 {
+    float diff = (gl_DepthRange.far - gl_DepthRange.near);
+    float cDist = FocusDist / diff;
+    float cDepth = FocusDepth / diff;
+    float cFalloff = FocusFalloff / diff;
 
-
-    // Set Values to ndc coords as gl_FragDepth
-
-    vec4 ndcDistP = (projectionMatrix * viewMatrix * vec4(0.,0.,FocusDist, 1.));
-    float ndcDist = (ndcDistP / ndcDistP.w).z;
-    vec4 ndcDepthP = (projectionMatrix * viewMatrix * vec4(0.,0.,FocusDepth, 1.));
-    float ndcDepth = (ndcDepthP / ndcDepthP.w).z;
-    vec4 ndcFalloffP = (projectionMatrix * viewMatrix * vec4(0.,0.,FocusFalloff, 1.));
-    float ndcFalloff = (ndcFalloffP / ndcFalloffP.w).z;
-
-    float focusMax = (ndcDepth*(.5) + ndcDist );
-    float focusMin = (ndcDepth*(-.5) + ndcDist);
-
-    vec2 tCoord = gl_FragCoord.xy / viewP;
-
-    float z = texture2D(depth, tCoord).r;
-
-    if(z > focusMin && z < focusMax) discard;
-
-    z = clamp((abs(ndcDist - z) - ndcDepth*.5) / FocusFalloff, 0., 1.);
-
-    outColor = vec4(z);
-
+    outColor = vec4(max(0, gl_FragDepth - cDist - cDepth) / ((cDist + (cDepth /2.)+cFalloff) - cDepth));
 
 }
