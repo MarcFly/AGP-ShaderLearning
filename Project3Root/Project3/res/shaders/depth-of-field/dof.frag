@@ -12,23 +12,33 @@ uniform mat4 projectionMatrix;
 uniform mat4 viewMatrix;
 uniform vec3 camPos;
 
+uniform sampler2D depth;
+
 void main()
 {
-    float focusMax = (FocusDepth*(.5) + FocusDist );
-    float focusMin = (FocusDepth*(-.5) + FocusDist);
 
-    float d = gl_FragDepth * 2. - 1.;
+
+    // Set Values to ndc coords as gl_FragDepth
+
+    vec4 ndcDistP = (projectionMatrix * viewMatrix * vec4(0.,0.,FocusDist, 1.));
+    float ndcDist = (ndcDistP / ndcDistP.w).z;
+    vec4 ndcDepthP = (projectionMatrix * viewMatrix * vec4(0.,0.,FocusDepth, 1.));
+    float ndcDepth = (ndcDepthP / ndcDepthP.w).z;
+    vec4 ndcFalloffP = (projectionMatrix * viewMatrix * vec4(0.,0.,FocusFalloff, 1.));
+    float ndcFalloff = (ndcFalloffP / ndcFalloffP.w).z;
+
+    float focusMax = (ndcDepth*(.5) + ndcDist );
+    float focusMin = (ndcDepth*(-.5) + ndcDist);
+
     vec2 tCoord = gl_FragCoord.xy / viewP;
-    vec4 clipSpace = vec4(tCoord * 2. - 1., d, 1.);
-    vec4 viewSpace = inverse(projectionMatrix) * clipSpace;
-    viewSpace /= viewSpace.w;
 
-    vec4 worldSpace = inverse(viewMatrix) * viewSpace;
+    float z = texture2D(depth, tCoord).r;
 
-    float dist = length(worldSpace.xyz - camPos);
+    if(z > focusMin && z < focusMax) discard;
 
-    if(dist > focusMin && dist < focusMax) discard;
+    z = clamp((abs(ndcDist - z) - ndcDepth*.5) / FocusFalloff, 0., 1.);
 
-    // Linear Falloff of focus
-    outColor = vec4(clamp(abs(dist - FocusDist) / (FocusFalloff), 0., 1.));
+    outColor = vec4(z);
+
+
 }

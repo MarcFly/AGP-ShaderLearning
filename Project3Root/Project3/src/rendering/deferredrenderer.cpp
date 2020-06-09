@@ -383,7 +383,7 @@ void DeferredRenderer::dofPrep(int w, int h)
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, w, h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w, h, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
 
     dofbo->bind();
     dofbo->addColorAttachment(0, dofMask);
@@ -478,7 +478,7 @@ void DeferredRenderer::render(Camera *camera)
     if(shownTexture() == "blurDebug")
         passBlurDebug();
 
-    //passDepthOfField();
+    passDepthOfField();
 
     passBlit();
 }
@@ -490,13 +490,15 @@ void DeferredRenderer::passDepthOfField()
     dofbo->bind();
 
     gl->glDisable(GL_DEPTH_TEST);
-    gl->glDepthMask(GL_FALSE);
+    //gl->glDepthMask(GL_FALSE);
     QOpenGLShaderProgram &program = depthOfFieldProgram->program;
     if(program.bind())
     {
-        program.setUniformValue("WriteMask", 0);
+        gl->glDrawBuffer(GL_COLOR_ATTACHMENT0);
+
+        program.setUniformValue("depth", 0);
         gl->glActiveTexture(GL_TEXTURE0);
-        gl->glBindTexture(GL_TEXTURE_2D, dofMask);
+        gl->glBindTexture(GL_TEXTURE_2D, fboDepth);
 
         program.setUniformValue("FocusDist", miscSettings->dofFocus);
         program.setUniformValue("FocusDepth", miscSettings->dofDepth);
@@ -976,7 +978,7 @@ void DeferredRenderer::passBlit()
         }
         else if(shownTexture() == "DOFMask")
         {
-            program.setUniformValue("blitDepth", true);
+            //program.setUniformValue("blitDepth", true);
             gl->glBindTexture(GL_TEXTURE_2D, dofMask);
         }
         else {
