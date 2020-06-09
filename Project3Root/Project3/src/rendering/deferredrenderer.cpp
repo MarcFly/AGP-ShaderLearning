@@ -384,7 +384,7 @@ void DeferredRenderer::dofPrep(int w, int h)
 
     dofbo->bind();
     dofbo->addColorAttachment(0, dofMask);
-    dofbo->addDepthAttachment(fboDepthMask);
+    dofbo->addDepthAttachment(dofMask);
     dofbo->checkStatus();
     dofbo->release();
 }
@@ -501,11 +501,13 @@ void DeferredRenderer::passDepthOfField(Camera* camera)
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     gl->glDisable(GL_DEPTH_TEST);
-    gl->glDepthMask(GL_FALSE);
+    //gl->glDepthMask(GL_FALSE);
 
     QOpenGLShaderProgram &program = depthOfFieldProgram->program;
     if(program.bind())
     {
+        gl->glDrawBuffer(GL_COLOR_ATTACHMENT0);
+
         program.setUniformValue("depth", 0);
         gl->glActiveTexture(GL_TEXTURE0);
         gl->glBindTexture(GL_TEXTURE_2D, fboDepth);
@@ -521,15 +523,17 @@ void DeferredRenderer::passDepthOfField(Camera* camera)
 
     dofbo->release();
 
-    passBlur(fboColor, dofMask);
-
     gl->glEnable(GL_DEPTH_TEST);
     gl->glDepthMask(GL_TRUE);
+
+    passBlur(fboColor, dofMask);
+
+
 }
 
 void DeferredRenderer::passBlur(GLuint ReadCol, GLuint Mask)
 {
-    if(Mask == UINT_MAX) Mask = resourceManager->texWhite->textureId();
+    //if(Mask == UINT_MAX) Mask = resourceManager->texWhite->textureId();
 
     OpenGLErrorGuard guard("DeferredRenderer::passBlur()");
 
@@ -546,6 +550,8 @@ void DeferredRenderer::passBlur(GLuint ReadCol, GLuint Mask)
     QOpenGLShaderProgram &program = gaussianblurProgram->program;
     if(program.bind())
     {
+        gl->glDrawBuffer(GL_COLOR_ATTACHMENT0);
+
         // Read from original image
         program.setUniformValue("colorMap", 0);
         gl->glActiveTexture(GL_TEXTURE0);
