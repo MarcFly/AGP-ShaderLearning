@@ -9,6 +9,8 @@ uniform vec2 viewP;
 uniform vec2 dir;
 uniform float ratio;
 
+uniform float num_passes;
+
 in vec2 texCoord;
 
 // Kernel Calculator?
@@ -57,6 +59,6 @@ void main()
     blurCol /= sumweights;
 
     vec3 finalCol = mix(baseCol, blurCol, ratio*maskval);
-    outColor = vec4(finalCol,1.);
+    outColor = vec4(finalCol,1./num_passes);
 
 }

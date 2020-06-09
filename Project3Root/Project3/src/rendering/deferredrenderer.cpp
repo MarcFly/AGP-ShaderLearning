@@ -204,7 +204,6 @@ void DeferredRenderer::gblurboPrep(int w, int h)
     // It will depend on the texture used to generate the blur and the output
     // With 2nd Texture, we can pass masks that affect the blur intensity
     gblurbo->addColorAttachment(0, blurDebug);
-    gblurbo->addColorAttachment(1, stepBlur);
     gblurbo->addDepthAttachment(fboDepth);
     gblurbo->checkStatus();
     gblurbo->release();
@@ -532,6 +531,7 @@ void DeferredRenderer::passBlur(GLuint ReadCol, GLuint Mask)
     // It will depend on the texture used to generate the blur and the output
     // With 2nd Texture, we can pass masks that affect the blur intensity
 
+
     QOpenGLShaderProgram &program = gaussianblurProgram->program;
     if(program.bind())
     {
@@ -551,22 +551,20 @@ void DeferredRenderer::passBlur(GLuint ReadCol, GLuint Mask)
         program.setUniformValue("ratio", miscSettings->blurVal);
         program.setUniformValue("viewP", camera->viewportWidth, camera->viewportHeight);
 
+        // We setup here the blur passes that will be performed
+        // We could keep going but probably unneeded
+        program.setUniformValue("num_passes", 2.0f);
         // Vertical Pass
-
-        gl->glDrawBuffer(GL_COLOR_ATTACHMENT1); // We write to StepBlur (1st Step)
 
         program.setUniformValue("dir", 0., 1.);
         resourceManager->quad->submeshes[0]->draw();
 
         // Horizontal Pass
 
-        gl->glDrawBuffer(GL_COLOR_ATTACHMENT0);
-
-        // idea is to read first written buffer to calc 2nd pass of blur
-        // Prints to black as if stepBlur not being written although it is
-        // Read from a color attachment gives issues seemingly
-        gl->glActiveTexture(GL_TEXTURE0);
-        gl->glBindTexture(GL_TEXTURE_2D, stepBlur);
+        // We only write to 1 texture, so we enable blending
+        // That will mix the diferent blur directions properly
+        gl->glEnable(GL_BLEND);
+        gl->glBlendFunc(GL_DST_ALPHA, GL_ONE_MINUS_DST_ALPHA);
 
         program.setUniformValue("dir", 1., 0.);
         resourceManager->quad->submeshes[0]->draw();
@@ -575,6 +573,7 @@ void DeferredRenderer::passBlur(GLuint ReadCol, GLuint Mask)
 
     gl->glDepthMask(GL_TRUE);
     gl->glEnable(GL_DEPTH_TEST);
+    gl->glDisable(GL_BLEND);
 }
 
 void DeferredRenderer::passBlurDebug()
