@@ -49,29 +49,18 @@ void main(void)
              g = grid(hit, 10.) * .7;
          if(g == 0)
              g = grid(hit, 1.) * .2;
+
+         if(g == 0.) discard;
+
          float ndcDepth = hitClip.z / hitClip.w;
          gl_FragDepth = ((gl_DepthRange.diff * ndcDepth) + gl_DepthRange.near + gl_DepthRange.far) / 2.;
 
-         // Make it more black over distance
-         // value is hardcoded for now
-
          float col = clamp(g / (t / 100.), .1, 1.);
-
-         if(g == 0.)
-         {
-             gl_FragDepth = 1.;
-             col = .05;
-             //discard;
-         }
-
          outColor = vec4(vec3(col), 1.);
     }
     else
     {
         gl_FragDepth = 1.;
-
-
-        //discard;
         outColor = vec4(vec3(.1), 1.);
 
         // Do background

@@ -30,7 +30,7 @@ DeferredRenderer::DeferredRenderer() :
 {
     fbo = nullptr;
     gbo = nullptr;
-    lbo = nullptr;
+    gbbo = nullptr;
     mbo = nullptr;
     obo = nullptr;
 
@@ -52,7 +52,6 @@ DeferredRenderer::~DeferredRenderer()
 {
     delete fbo;
     delete gbo;
-    delete lbo;
     delete mbo;
     delete obo;
     delete gbbo;
@@ -83,14 +82,6 @@ void DeferredRenderer::initialize()
     blitProgram->vertexShaderFilename = "res/shaders/blit.vert";
     blitProgram->fragmentShaderFilename = "res/shaders/blit.frag";
     blitProgram->includeForSerialization = false;
-
-    // Debug Light Program, Draw white diffuminated by expected attenuation to get a sense of what the lights are doing
-    debugSpheres = resourceManager->createShaderProgram();
-    debugSpheres->name = "DebugLights";
-    debugSpheres->vertexShaderFilename = "res/shaders/deferred_shading.vert";
-    debugSpheres->fragmentShaderFilename = "res/shaders/debug_light.frag";
-    debugSpheres->includeForSerialization = false;
-
 
     // Masking Program, tests selected geometry and wirtes a white texture where they are
     maskProgram = resourceManager->createShaderProgram();
@@ -129,9 +120,6 @@ void DeferredRenderer::initialize()
     gbo = new FramebufferObject;
     gbo->create();
 
-    lbo = new FramebufferObject;
-    lbo->create();
-
     mbo = new FramebufferObject;
     mbo->create();
 
@@ -152,9 +140,6 @@ void DeferredRenderer::finalize()
 
     gbo->destroy();
     delete gbo;
-
-    lbo->destroy();
-    delete lbo;
 
     mbo->destroy();
     delete mbo;
@@ -306,27 +291,6 @@ void DeferredRenderer::gboPrep(int w, int h)
 
 }
 
-void DeferredRenderer::lboPrep(int w, int h)
-{
-
-    if (lightSpheres == 0) gl->glDeleteTextures(1, &lightSpheres);
-    gl->glGenTextures(1, &lightSpheres);
-    gl->glBindTexture(GL_TEXTURE_2D, lightSpheres);
-    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-
-    lbo->bind();
-    lbo->addColorAttachment(0, lightSpheres);
-    lbo->addDepthAttachment(fboDepth);
-    lbo->checkStatus();
-    lbo->release();
-
-}
-
 void DeferredRenderer::mboPrep(int w, int h)
 {
     if(fboMask == 0) gl->glDeleteTextures(1, &fboMask);
@@ -349,6 +313,15 @@ void DeferredRenderer::mboPrep(int w, int h)
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, w, h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 
+    if (dOutline == 0) gl->glDeleteTextures(1, &dOutline);
+    gl->glGenTextures(1, &dOutline);
+    gl->glBindTexture(GL_TEXTURE_2D, dOutline);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, w, h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 
     // Attach textures to the FBO
     mbo->bind();
@@ -361,7 +334,7 @@ void DeferredRenderer::mboPrep(int w, int h)
 
     obo->bind();
     obo->addColorAttachment(0, fboColor);
-    obo->addDepthAttachment(fboDepthMask);
+    obo->addDepthAttachment(dOutline);
     obo->checkStatus();
     obo->release();
 
@@ -372,55 +345,48 @@ void DeferredRenderer::resize(int w, int h)
     OpenGLErrorGuard guard("DeferredRenderer::resize()");
 
     fboPrep(w,h);
-    gbboPrep(w,h);
     gboPrep(w,h);
-
-
-
-    // Debug Preps
-    lboPrep(w, h);
+    gbboPrep(w,h);
     mboPrep(w,h);
-
-    // Gaussian blur uses fboMask, needs to clean and create first
     gblurboPrep(w,h);
 
+    // Debug Preps
 
 }
 
 void DeferredRenderer::cleanBuffers()
 {
     // Clean Default
-    gl->glClearDepth(1.0);
+    gl->glClearColor(0.,0.,0.,0.);
+    gl->glClearDepth(0.0);
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    gl->glClearDepth(1.0);
+    fbo->bind();
+    gl->glClear(GL_COLOR_BUFFER_BIT);
+    fbo->release();
 
     // Clean Grid Background
     gbbo->bind();
-    gl->glClearDepth(1.0);
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     gbbo->release();
 
     // Clear Geometry
     gbo->bind();
-    gl->glClearDepth(1.0);
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     gbo->release();
 
-    // Clear Lighting
-
     // Clear Blur fbo
     gblurbo->bind();
-    gl->glClearDepth(1.0);
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     gblurbo->release();
 
     // Clear Outline
     mbo->bind();
-    gl->glClearDepth(1.0);
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     mbo->release();
 
     obo->bind();
-    gl->glClearDepth(1.0);
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     obo->release();
 
@@ -438,11 +404,6 @@ void DeferredRenderer::render(Camera *camera)
     passMeshes(camera);
 
     passLighting();
-
-    if(shownTexture() == "LightSpheres")
-        passDebugLights();
-
-
 
     // Outline will always be just before the blit
     // Else it would be overwritten by other effects
@@ -528,10 +489,10 @@ void DeferredRenderer::passGridBackground(Camera* camera)
     gbbo->bind();
 
     gl->glEnable(GL_DEPTH_TEST);
+    gl->glDepthFunc(GL_LEQUAL);
+    //gl->glDepthMask(GL_FALSE);
     gl->glEnable(GL_BLEND);
     gl->glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    gl->glDepthFunc(GL_LEQUAL);
 
     QOpenGLShaderProgram& program = bggridProgram->program;
     if(program.bind())
@@ -548,6 +509,7 @@ void DeferredRenderer::passGridBackground(Camera* camera)
     }
     gbbo->release();
 
+    gl->glDepthMask(GL_TRUE);
     gl->glDisable(GL_BLEND);
     gl->glDisable(GL_DEPTH_TEST);
 }
@@ -559,6 +521,8 @@ void DeferredRenderer::passOutline(Camera *camera)
     if(selection->entities[0] == nullptr ||  !miscSettings->renderOutline) return;
 
     mbo->bind();
+    gl->glEnable(GL_DEPTH_TEST);
+    gl->glDepthFunc(GL_LEQUAL);
     gl->glClearColor(0.,0.,0.,0.);
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     {
@@ -844,20 +808,10 @@ void DeferredRenderer::passLighting()
     fbo->release();
 }
 
-void DeferredRenderer::passDebugLights()
-{
-    /*
-    lbo->bind();
-    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    gl->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-
-    lbo->release();
-    */
-}
-
 void DeferredRenderer::passBlit()
 {
     gl->glDisable(GL_DEPTH_TEST);
+    gl->glDisable(GL_BLEND);
 
     QOpenGLShaderProgram &program = blitProgram->program;
 
@@ -887,9 +841,6 @@ void DeferredRenderer::passBlit()
         }
         else if(shownTexture() == "Ambient"){
             gl->glBindTexture(GL_TEXTURE_2D, fboAmbient);
-        }
-        else if(shownTexture() == "LightSpheres"){
-            gl->glBindTexture(GL_TEXTURE_2D, lightSpheres);
         }
         else if(shownTexture() == "MaskOutline")
         {

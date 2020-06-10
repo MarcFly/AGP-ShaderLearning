@@ -25,7 +25,6 @@ private:
 
     void fboPrep(int w, int h);
     void gboPrep(int w, int h);
-    void lboPrep(int w, int h);
     void mboPrep(int w, int h);
     void gbboPrep(int w, int h);
     void gblurboPrep(int w, int h);
@@ -35,10 +34,7 @@ private:
     void passLighting();
     void passBlit();
 
-    void passDebugLights();
-
     void passBlur(GLuint ReadCol, GLuint Mask = UINT_MAX);
-    void passBlurDebug();
 
     void passOutline(Camera *camera);
 
@@ -70,12 +66,9 @@ private:
     // Outline Pass
     GLuint fboMask = 0;
     GLuint fboDepthMask = 0;
+    GLuint dOutline = 0;
 
-    // ONLY FOR DEBUG PURPOSES
-    // ONLY WRITE TO WHEN THE TEXTURE IS SELECTED
-    ShaderProgram *debugSpheres = nullptr;
-    GLuint lightSpheres = 0;
-
+    // Blur Pass
     GLuint stepBlur = 0;
     GLuint blurDebug = 0;
 
@@ -84,7 +77,6 @@ private:
     FramebufferObject *fbo = nullptr; // Main FBO
     // Will use fbo for grid and background also
     FramebufferObject *gbo = nullptr; // Geometry Pass
-    FramebufferObject *lbo = nullptr; // Debug for Light Spheres
 
     FramebufferObject *mbo = nullptr; // Mask selected Object
     FramebufferObject *obo = nullptr; // Outline buffer object
