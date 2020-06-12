@@ -83,7 +83,7 @@ public:
     Type type = Type::Point;
     QColor color;
     float intensity = 1.0f;
-    float range = 10.0f;
+    float range = 5.5f;
 };
 
 #endif // COMPONENTS_H

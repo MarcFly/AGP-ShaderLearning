@@ -429,21 +429,29 @@ void DeferredRenderer::passLighting(Camera* camera)
         gl->glActiveTexture(GL_TEXTURE2);
         gl->glBindTexture(GL_TEXTURE_2D, gboAlbedoSpec);
 
-        program.setUniformValue("ViewPort", QVector2D(camera->viewportWidth, camera->viewportHeight));
+        program.setUniformValue("ViewPort", camera->viewportWidth, camera->viewportHeight);
         // Get all light indices
         for(auto entity : scene->entities)
         {
             if (entity->active && entity->lightSource != nullptr)
             {
                 auto light = entity->lightSource;
-                program.setUniformValue("lightPosition", QVector3D(entity->transform->position));
+                program.setUniformValue("lightPosition",  QVector3D(entity->transform->position));// * QVector4D(0.,0.,0.,1.)));
                 program.setUniformValue("lightDirection", QVector3D(entity->transform->matrix() * QVector4D(0.0, 1.0, 0.0, 0.0)));
 
+                //float realdist = (get - entity->transform->position).length();
+                //float latt = realdist / light->range;
+
                 program.setUniformValue("lightType", (GLint)light->type);
-                program.setUniformValue("lightRange", std::sqrtf(light->range));
+                program.setUniformValue("lightRange", light->range);
                 program.setUniformValue("lightIntensity", light->intensity);
 
+
+
+
                 program.setUniformValue("lightColor", QVector3D(light->color.redF(), light->color.greenF(), light->color.blueF()));
+
+                //float val =
 
                 // Draw Light onto the Buffers
                 if(light->type == LightSource::Type::Point)
@@ -457,8 +465,6 @@ void DeferredRenderer::passLighting(Camera* camera)
                     scaleMatrix.scale(rScale,rScale,rScale);
                     QMatrix4x4 worldViewMatrix = camera->viewMatrix * worldMatrix * scaleMatrix;
 
-                    program.setUniformValue("worldMatrix", worldMatrix);
-                    program.setUniformValue("viewMatrix", camera->viewMatrix);
                     program.setUniformValue("worldViewMatrix", worldViewMatrix);
                     program.setUniformValue("projectionMatrix", camera->projectionMatrix);
 
@@ -513,6 +519,7 @@ void DeferredRenderer::passBlit()
         }
         else if(shownTexture() == "Position"){
             gl->glBindTexture(GL_TEXTURE_2D, gboPosition);
+
         }
         else if(shownTexture() == "Normals"){
             gl->glBindTexture(GL_TEXTURE_2D, gboNormal);

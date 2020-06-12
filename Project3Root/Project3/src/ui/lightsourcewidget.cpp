@@ -45,7 +45,7 @@ LightSourceWidget::LightSourceWidget(QWidget *parent) : QWidget(parent)
     spinRange->setMinimum(0.0);
     spinRange->setMaximum(10000.0);
     spinRange->setSingleStep(.1);
-    spinRange->setValue(1.0);
+    spinRange->setValue(5.5);
     vlayout->addRow(labelRange, spinRange);
 
     setLayout(vlayout);

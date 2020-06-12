@@ -17,30 +17,26 @@ uniform sampler2D gboAlbedoSpec;
 uniform vec2 ViewPort;
 out vec4 outColor;
 
-#define MIN (5. / 256.)
-
-uniform mat4 projectionMatrix;
-uniform mat4 viewMatrix;
-uniform mat4 worldViewMatrix;
-
 void main(void)
 {
     // Prep Values for Calc
-    vec2 texCoord = gl_FragCoord.xy / ViewPort;
-    vec3 rPos = texture(gboPosition, texCoord).rgb;
-    vec3 N = texture(gboNormal, texCoord).rgb;
-    vec4 albedoSpec = texture(gboAlbedoSpec, texCoord).rgba;
+    vec2 texCoord = gl_FragCoord.xy / ViewPort.xy;
+    vec3 rPos = texture2D(gboPosition, texCoord).rgb;
+    vec3 N = texture2D(gboNormal, texCoord).rgb;
+    vec4 albedoSpec = texture2D(gboAlbedoSpec, texCoord).rgba;
     vec3 camVec = normalize(rPos - camPos);
 
+    // Testing
     // Calculate Attenuation
     // https://learnopengl.com/Lighting/Light-casters
 
-    float attenuation = 1. - smoothstep(lightRange, 0., length(rPos - lightPosition));
-    //attenuation = length(rPos - lightPosition) / lightRange;
+    float dist = length(rPos - lightPosition);
+    float attenuation = 1. - smoothstep(0., lightRange, dist);
+
     // Diffuse - Lambertian
     // Specular - Fresnel, the more parallel the viewer is to a surface, more reflective it becomes
 
-    vec3 finalCol;
+    vec3 finalCol = vec3(0.);
 
     vec3 ldir = lightDirection;
     if(lightType == 0)
@@ -63,5 +59,5 @@ void main(void)
 
     finalCol.rgb += albedoSpec.rgb * lightColor.rgb * (albedoSpec.a * k_s);
 
-    outColor = vec4(finalCol.rgb,lightIntensity);
+    outColor = vec4(finalCol.rgb, attenuation * lightIntensity);
 }
