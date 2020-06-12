@@ -70,6 +70,8 @@ DeferredRenderer::DeferredRenderer() :
     // Depth Test is default false, POINT lights don't occlude each other
     // Depth write obviously false because we don't want to tamper with depth buffer
     lightingState.blending = true;  // Light+Previous Ambient Written
+    mainState.blendFuncSrc = GL_SRC_ALPHA;
+    mainState.blendFuncDst = GL_ONE_MINUS_SRC_ALPHA;
     lightingState.faceCulling = true;
     lightingState.faceCullingMode = GL_FRONT;   // We cull what is in front, because we write whats inside the sphere (not before)
 }
@@ -227,22 +229,6 @@ void DeferredRenderer::resize(int w, int h)
 
     // Debug Preps
 
-}
-
-void DeferredRenderer::cleanBuffers()
-{
-    // Clean Default
-
-
-
-    fbo->bind();
-    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    fbo->release();
-
-    gbo->bind();
-    // OpenGL does not like to clean if nothing is done previously
-
-    gbo->release();
 }
 
 void DeferredRenderer::render(Camera *camera)
@@ -408,8 +394,7 @@ void DeferredRenderer::passLighting(Camera* camera)
 
     fbo->bind();
 
-    // We don't clear fbo HERE, because we write over the ambient on final texture
-    // We cleared previously
+    // Not clean because we use the texture as ambient
 
     QOpenGLShaderProgram &program = deferredProgram->program;
 
@@ -430,6 +415,7 @@ void DeferredRenderer::passLighting(Camera* camera)
         gl->glBindTexture(GL_TEXTURE_2D, gboAlbedoSpec);
 
         program.setUniformValue("ViewPort", camera->viewportWidth, camera->viewportHeight);
+        program.setUniformValue("camPos", camera->position);
         // Get all light indices
         for(auto entity : scene->entities)
         {
@@ -439,8 +425,6 @@ void DeferredRenderer::passLighting(Camera* camera)
                 program.setUniformValue("lightPosition",  QVector3D(entity->transform->position));// * QVector4D(0.,0.,0.,1.)));
                 program.setUniformValue("lightDirection", QVector3D(entity->transform->matrix() * QVector4D(0.0, 1.0, 0.0, 0.0)));
 
-                //float realdist = (get - entity->transform->position).length();
-                //float latt = realdist / light->range;
 
                 program.setUniformValue("lightType", (GLint)light->type);
                 program.setUniformValue("lightRange", light->range);
@@ -450,8 +434,6 @@ void DeferredRenderer::passLighting(Camera* camera)
 
 
                 program.setUniformValue("lightColor", QVector3D(light->color.redF(), light->color.greenF(), light->color.blueF()));
-
-                //float val =
 
                 // Draw Light onto the Buffers
                 if(light->type == LightSource::Type::Point)

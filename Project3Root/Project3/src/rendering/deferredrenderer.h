@@ -25,7 +25,6 @@ private:
 
     void fboPrep(int w, int h);
     void gboPrep(int w, int h);
-    void cleanBuffers();
 
     void passMeshes(Camera *camera);
     void passLighting(Camera* camera);

@@ -1,20 +1,18 @@
 #version 330 core
 
 // Light Data
-#define MAX_LIGHTS 8
 uniform int lightType;
 uniform vec3 lightPosition;
 uniform vec3 lightDirection;
 uniform vec3 lightColor;
 uniform float lightIntensity;
 uniform float lightRange;
-uniform mat4 worldMatrix;
-uniform vec3 camPos;
 
 uniform sampler2D gboPosition;
 uniform sampler2D gboNormal;
 uniform sampler2D gboAlbedoSpec;
 uniform vec2 ViewPort;
+uniform vec3 camPos;
 out vec4 outColor;
 
 void main(void)
