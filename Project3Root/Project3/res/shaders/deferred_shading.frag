@@ -8,9 +8,6 @@ uniform vec3 lightDirection;
 uniform vec3 lightColor;
 uniform float lightIntensity;
 uniform float lightRange;
-uniform float Kc;
-uniform float Kl;
-uniform float Kq;
 uniform mat4 worldMatrix;
 uniform vec3 camPos;
 
@@ -37,17 +34,9 @@ void main(void)
 
     // Calculate Attenuation
     // https://learnopengl.com/Lighting/Light-casters
-    float dist = distance(lightPosition, rPos) * 1.3;
-    float attenuation = 1. / (Kq*pow(dist, 2.) + Kl*dist + Kc);
 
-    float cutre = smoothstep(lightRange, 0, length(rPos - lightPosition));
-    attenuation = cutre;
-
-    vec4 glPos = vec4(gl_FragCoord.xyz / gl_FragCoord.w,1./(1./gl_FragCoord.w));
-    vec3 realPos =  (inverse(projectionMatrix) * inverse(viewMatrix) * glPos).xyz;
-
-    //attenuation = smoothstep(lightRange, 0, length(realPos - lightPosition));
-
+    float attenuation = 1. - smoothstep(lightRange, 0., length(rPos - lightPosition));
+    //attenuation = length(rPos - lightPosition) / lightRange;
     // Diffuse - Lambertian
     // Specular - Fresnel, the more parallel the viewer is to a surface, more reflective it becomes
 
@@ -74,5 +63,5 @@ void main(void)
 
     finalCol.rgb += albedoSpec.rgb * lightColor.rgb * (albedoSpec.a * k_s);
 
-    outColor = vec4(finalCol.rgb,1.) * lightIntensity * attenuation;
+    outColor = vec4(finalCol.rgb,lightIntensity);
 }

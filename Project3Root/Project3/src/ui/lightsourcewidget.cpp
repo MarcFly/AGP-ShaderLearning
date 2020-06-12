@@ -34,8 +34,8 @@ LightSourceWidget::LightSourceWidget(QWidget *parent) : QWidget(parent)
     labelIntensity->setMinimumSize(QSize(70, 10));
     spinIntensity = new QDoubleSpinBox();
     spinIntensity->setMinimum(0.0);
-    spinIntensity->setMaximum(10000.0);
-    spinIntensity->setSingleStep(.2);
+    spinIntensity->setMaximum(1.0);
+    spinIntensity->setSingleStep(.05);
     spinIntensity->setValue(1.0);
     vlayout->addRow(labelIntensity, spinIntensity);
 
@@ -47,8 +47,6 @@ LightSourceWidget::LightSourceWidget(QWidget *parent) : QWidget(parent)
     spinRange->setSingleStep(.1);
     spinRange->setValue(1.0);
     vlayout->addRow(labelRange, spinRange);
-
-    // TODO: Add attenuation Type ComboBox to change style of it
 
     setLayout(vlayout);
 
@@ -63,11 +61,6 @@ void LightSourceWidget::setLightSource(LightSource *light)
 {
     lightSource = light;
     if (lightSource == nullptr) return;
-
-    QSignalBlocker b1(comboType);
-    QSignalBlocker b2(spinIntensity);
-    QSignalBlocker b3(spinRange);
-    QSignalBlocker b4(buttonColor);
 
     comboType->setCurrentIndex((int)lightSource->type);
 
@@ -90,17 +83,9 @@ void LightSourceWidget::onIntensityChanged(double val)
     emit componentChanged(lightSource);
 }
 
-float AsymSigmoid (float x, float a, float b, float c, float d, float m)
-{
-    return (d + (a - d) / std::pow(1 + std::pow(x/c,b), m));
-}
-
 void LightSourceWidget::onRangeChanged(double val)
 {
     lightSource->range = val;
-
-    lightSource->kl = AsymSigmoid(val, 4.268f, 10.870f, 1.451f, 0.021f, 0.107f);
-    lightSource->kq = AsymSigmoid(val, 9.191f, 17.307f, 3.398f, 0.013f, 0.131f);
 
     emit componentChanged(lightSource);
 }

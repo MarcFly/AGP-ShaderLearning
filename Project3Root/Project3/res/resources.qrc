@@ -21,8 +21,6 @@
         <file alias="deferred_shading.vert">shaders/deferred_shading.vert</file>
         <file alias="geometry_pass.frag">shaders/gpass.frag</file>
         <file alias="geometry_pass.vert">shaders/gpass.vert</file>
-        <file alias="debug_light.frag">shaders/debug_light.frag</file>
-        <file alias="debug_light.vert">shaders/debug_light.vert</file>
         <file>shaders/outline/mask.vert</file>
         <file>shaders/outline/mask.frag</file>
         <file>shaders/outline/outline.vert</file>

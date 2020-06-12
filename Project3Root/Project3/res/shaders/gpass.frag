@@ -26,7 +26,7 @@ void main()
     vec4 albedoVal = albedo.rgba * texture(albedoTexture, vTexCoords).rgba;
     vec4 specVal = specular.rgba * texture(specularTexture, vTexCoords).rgba;
     gboAlbedoSpec = vec4(albedoVal.rgb, specVal.a);
-    fboAmbient = vec3(albedoVal.rgb * AMBIENT);
+    fboAmbient = vec3(albedoVal.rgb);
 
-    outColor = vec4(fboAmbient, 1.);
+    outColor = vec4(fboAmbient * AMBIENT, 1.);
 }

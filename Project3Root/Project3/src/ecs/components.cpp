@@ -104,9 +104,6 @@ void LightSource::read(const QJsonObject &json)
     this->color.setGreen(json["g"].toInt());
     this->color.setBlue(json["b"].toInt());
     this->color.setAlpha(json["a"].toInt());
-    //this->kc = json["kc"].toInt();
-    //this->kl = json["kl"].toInt();
-    //this->kq = json["kq"].toInt();
     Type type = (Type)json["type"].toInt();
     this->type = type;
     this->range = json["range"].toDouble();
@@ -121,9 +118,6 @@ void LightSource::write(QJsonObject &json)
     lightComponent["g"] = ret[1];
     lightComponent["b"] = ret[2];
     lightComponent["a"] = ret[3];
-    lightComponent["kc"] = this->kc;
-    lightComponent["kl"] = this->kl;
-    lightComponent["kq"] = this->kq;
     lightComponent["type"] = (int)this->type;
     lightComponent["range"] = this->range;
     lightComponent["intensity"] = this->intensity;

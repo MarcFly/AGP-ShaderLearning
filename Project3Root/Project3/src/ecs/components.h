@@ -84,11 +84,6 @@ public:
     QColor color;
     float intensity = 1.0f;
     float range = 10.0f;
-
-    // Attenuation Constants
-    float kc = 1.0f;
-    float kl = 0.7f;
-    float kq = 1.8f;
 };
 
 #endif // COMPONENTS_H
