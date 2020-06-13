@@ -26,6 +26,7 @@ private:
     void fboPrep(int w, int h);
     void gboPrep(int w, int h);
     void gridbgPrep(int w, int h);
+    void outlinePrep(int w, int h);
 
     void CleanFirstBuffers();
 
@@ -34,6 +35,7 @@ private:
     void passBlit();
 
     void PassGridBackground(Camera* camera);
+    void PassOutline(Camera* camera);
 
     // Shaders
     ShaderProgram *gpassProgram = nullptr;
@@ -41,6 +43,8 @@ private:
     ShaderProgram *blitProgram = nullptr;
 
     ShaderProgram *gridbgProgram = nullptr;
+    ShaderProgram *outlineProgram = nullptr;
+    ShaderProgram *maskProgram = nullptr;
 
     // MAIN Textures Needed
 
@@ -53,8 +57,9 @@ private:
     GLuint gboAlbedoSpec = 0;
     GLuint gboNormal = 0;
 
-    // Editor Grid and Background Pass
-    GLuint fboGridBgDepth = 0;
+    // Editor Passes Textures
+    GLuint fboEditorDepth = 0;
+    GLuint fboOutlineMask = 0;
 
 
 
@@ -71,6 +76,11 @@ private:
 
     FramebufferObject *gridbgBO = nullptr;
     OpenGLState gridbgState;
+
+    FramebufferObject *outlineBO = nullptr;
+    FramebufferObject *maskBO = nullptr;
+    OpenGLState outlineState;
+    OpenGLState maskState;
 
 };
 

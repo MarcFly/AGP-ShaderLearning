@@ -25,13 +25,15 @@ DeferredRenderer::DeferredRenderer() :
     gboPosition(QOpenGLTexture::Target2D),
     gboAlbedoSpec(QOpenGLTexture::Target2D),
     gboNormal(QOpenGLTexture::Target2D),
-    fboGridBgDepth(QOpenGLTexture::Target2D)
+    fboEditorDepth(QOpenGLTexture::Target2D),
+    fboOutlineMask(QOpenGLTexture::Target2D)
 
 
 {
     fbo = nullptr;
     gbo = nullptr;
     gridbgBO = nullptr;
+    outlineBO = nullptr;
 
     // List of Textures
     addTexture("Final Render");
@@ -40,6 +42,8 @@ DeferredRenderer::DeferredRenderer() :
     addTexture("Normals");
     addTexture("AlbedoSpec");
     addTexture("Depth");
+    addTexture("Editor Depth");
+    addTexture("Outline Mask");
     addTexture("Mouse Picking");
     addTexture("White");
 
@@ -83,6 +87,21 @@ DeferredRenderer::DeferredRenderer() :
     // Same with depth write, we don't want that, clean depth buffer
     gridbgState.blending = true; // Mixing Ambient with the grid
     // We use main function because we will be mixing based on alpha
+
+    // Outline State
+    outlineState = mainState;
+    outlineState.blending = true;
+
+    // Mask State
+    maskState = mainState;
+    maskState.blending = true;
+    maskState.blendFuncSrc = GL_ONE;
+    maskState.blendFuncDst = GL_ZERO;
+    maskState.depthTest = true;
+    maskState.depthWrite = true;
+    maskState.depthFunc = GL_LEQUAL;
+    maskState.faceCulling = true;
+
 }
 
 DeferredRenderer::~DeferredRenderer()
@@ -90,6 +109,8 @@ DeferredRenderer::~DeferredRenderer()
     delete fbo;
     delete gbo;
     delete gridbgBO;
+    delete maskBO;
+    delete outlineBO;
 }
 
 void DeferredRenderer::initialize()
@@ -124,6 +145,20 @@ void DeferredRenderer::initialize()
     gridbgProgram->fragmentShaderFilename = "res/shaders/grid-background/bggrid.frag";
     gridbgProgram->includeForSerialization = false;
 
+    // Mask Program
+    maskProgram = resourceManager->createShaderProgram();
+    maskProgram->name = "Mask";
+    maskProgram->vertexShaderFilename = "res/shaders/outline/mask.vert";
+    maskProgram->fragmentShaderFilename = "res/shaders/outline/mask.frag";
+    maskProgram->includeForSerialization = false;
+
+    // Outline Program
+    outlineProgram = resourceManager->createShaderProgram();
+    outlineProgram->name = "Outline";
+    outlineProgram->vertexShaderFilename = "res/shaders/blit.vert";
+    outlineProgram->fragmentShaderFilename = "res/shaders/outline/outline.frag";
+    outlineProgram->includeForSerialization = false;
+
     // Create the main FBO
     fbo = new FramebufferObject;
     fbo->create();
@@ -133,6 +168,12 @@ void DeferredRenderer::initialize()
 
     gridbgBO = new FramebufferObject;
     gridbgBO->create();
+
+    maskBO = new FramebufferObject;
+    maskBO->create();
+
+    outlineBO = new FramebufferObject;
+    outlineBO->create();
 
     gl->glClearColor(0.,0.,0.,0.);
     gl->glClearDepth(1.0);
@@ -145,6 +186,15 @@ void DeferredRenderer::finalize()
 
     gbo->destroy();
     delete gbo;
+
+    gridbgBO->destroy();
+    delete gridbgBO;
+
+    maskBO->destroy();
+    delete maskBO;
+
+    outlineBO->destroy();
+    delete outlineBO;
 
 }
 
@@ -241,9 +291,9 @@ void DeferredRenderer::gboPrep(int w, int h)
 
 void DeferredRenderer::gridbgPrep(int w, int h)
 {
-    if (fboGridBgDepth == 0) gl->glDeleteTextures(1, &fboGridBgDepth);
-    gl->glGenTextures(1, &fboGridBgDepth);
-    gl->glBindTexture(GL_TEXTURE_2D, fboGridBgDepth);
+    if (fboEditorDepth == 0) gl->glDeleteTextures(1, &fboEditorDepth);
+    gl->glGenTextures(1, &fboEditorDepth);
+    gl->glBindTexture(GL_TEXTURE_2D, fboEditorDepth);
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
@@ -255,13 +305,39 @@ void DeferredRenderer::gridbgPrep(int w, int h)
     // We reuse fboDepth without TESTING OR WRITING
     // We read GL_FragDepth because it is used for determining in fragment
     // if we hit grid or nah
-    // If we have something being corrupted, we will use the fboGridBGDepth and pass fboDepth for read
+    // If we have something being corrupted, we will use the fboEditorDepth and pass fboDepth for read
 
     gridbgBO->bind();
     gridbgBO->addColorAttachment(0, fboEditor);
-    gridbgBO->addDepthAttachment(fboGridBgDepth);
+    gridbgBO->addDepthAttachment(fboEditorDepth);
     gridbgBO->checkStatus();
     gridbgBO->release();
+}
+
+void DeferredRenderer::outlinePrep(int w, int h)
+{
+    if (fboOutlineMask == 0) gl->glDeleteTextures(1, &fboOutlineMask);
+    gl->glGenTextures(1, &fboOutlineMask);
+    gl->glBindTexture(GL_TEXTURE_2D, fboOutlineMask);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w, h, 0, GL_RED, GL_FLOAT, nullptr);
+
+    maskBO->bind();
+    maskBO->addColorAttachment(0, fboOutlineMask);
+    maskBO->addDepthAttachment(fboEditorDepth);
+    maskBO->checkStatus();
+    maskBO->release();
+
+    outlineBO->bind();
+    outlineBO->addColorAttachment(0, fboEditor);
+    outlineBO->addDepthAttachment(fboEditorDepth);
+    outlineBO->checkStatus();
+    outlineBO->release();
+
 }
 
 void DeferredRenderer::resize(int w, int h)
@@ -273,12 +349,21 @@ void DeferredRenderer::resize(int w, int h)
 
     gridbgPrep(w,h);
 
+    outlinePrep(w,h);
+
     // Debug Preps
 
 }
 
 void DeferredRenderer::CleanFirstBuffers()
 {
+    //  Here we perform a pre-clean on buffers that use textures that can't be cleaned
+    //  when executing the shader as it is reusing them
+    //  With this we perform a clean after they have been written to
+
+    //  Does not work with buffers that do not reuse textures, which have to be cleaned at
+    //  execution time,  I don't know why but that is the way OpenGL shows us issues
+
     fbo->bind();
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     fbo->release();
@@ -286,6 +371,10 @@ void DeferredRenderer::CleanFirstBuffers()
     gridbgBO->bind();
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     gridbgBO->release();
+
+    outlineBO->bind();
+    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    outlineBO->release();
 }
 
 void DeferredRenderer::render(Camera *camera)
@@ -301,12 +390,69 @@ void DeferredRenderer::render(Camera *camera)
     {
         passLighting(camera);
     }
-    else if(shownTexture() == "Editor")
+    else // I do else to get every debug things without worrying if it would be seen
     {
         PassGridBackground(camera);
+        PassOutline(camera);
     }
 
     passBlit();
+}
+
+void DeferredRenderer::PassOutline(Camera *camera)
+{
+    if(selection->entities[0] == nullptr || !miscSettings->renderOutline) return;
+
+    maskState.apply();
+    maskBO->bind();
+    {
+        gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        QOpenGLShaderProgram &program = maskProgram->program;
+        if(program.bind())
+        {
+            program.setUniformValue("projectionMatrix", camera->projectionMatrix);
+
+            for(int i = 0; selection->entities[i] != nullptr && i < MAX_SELECTED_ENTITIES; ++i)
+            {
+                Entity* et = selection->entities[i];
+                if (et->meshRenderer != nullptr) {
+
+                    QMatrix4x4 worldViewMatrix = camera->viewMatrix * et->transform->matrix();
+                    program.setUniformValue("worldViewMatrix", worldViewMatrix);
+
+                    for (auto submesh : et->meshRenderer->mesh->submeshes)
+                    {
+
+                                submesh->draw();
+                    }
+                }
+
+            }
+        }
+
+
+        maskBO->release();
+    }
+
+    outlineState.apply();
+    outlineBO->bind();
+    {
+        QOpenGLShaderProgram &program = outlineProgram->program;
+        if(program.bind())
+        {
+            program.setUniformValue("mask", 0);
+            gl->glActiveTexture(GL_TEXTURE0);
+            gl->glBindTexture(GL_TEXTURE_2D, fboOutlineMask);
+
+            program.setUniformValue("alpha", miscSettings->OutlineAlpha);
+            program.setUniformValue("width", miscSettings->OutlineWidth);
+
+            resourceManager->quad->submeshes[0]->draw();
+        }
+
+        outlineBO->release();
+    }
 }
 
 void DeferredRenderer::PassGridBackground(Camera *camera)
@@ -341,8 +487,6 @@ void DeferredRenderer::PassGridBackground(Camera *camera)
     }
 
     gridbgBO->release();
-
-    mainState.apply();
 }
 
 void DeferredRenderer::passMeshes(Camera *camera)
@@ -479,8 +623,6 @@ void DeferredRenderer::passMeshes(Camera *camera)
     }
 
     gbo->release();
-
-    mainState.apply();
 }
 
 void DeferredRenderer::passLighting(Camera* camera)
@@ -564,8 +706,6 @@ void DeferredRenderer::passLighting(Camera* camera)
 
     }
 
-    mainState.apply();
-
     fbo->release();
 }
 
@@ -595,6 +735,10 @@ void DeferredRenderer::passBlit()
             program.setUniformValue("blitDepth", true);
             gl->glBindTexture(GL_TEXTURE_2D, fboDepth);
         }
+        else if(shownTexture() == "Editor Depth"){
+            program.setUniformValue("blitDepth", true);
+            gl->glBindTexture(GL_TEXTURE_2D, fboEditorDepth);
+        }
         else if(shownTexture() == "Position"){
             gl->glBindTexture(GL_TEXTURE_2D, gboPosition);
 
@@ -604,6 +748,10 @@ void DeferredRenderer::passBlit()
         }
         else if(shownTexture() == "AlbedoSpec"){
             gl->glBindTexture(GL_TEXTURE_2D, gboAlbedoSpec);
+        }
+        else if(shownTexture() == "Outline Mask")
+        {
+            gl->glBindTexture(GL_TEXTURE_2D, fboOutlineMask);
         }
         else if(shownTexture() == "Mouse Picking")
         {
