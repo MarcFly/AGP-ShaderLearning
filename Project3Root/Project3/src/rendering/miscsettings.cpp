@@ -79,7 +79,7 @@ void MiscSettings::read(const QJsonObject &json)
         }
     }
 
-    emit selection->updateWidget();
+    emit selection->updateMiscSettings();
 
 }
 

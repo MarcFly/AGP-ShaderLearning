@@ -1,4 +1,5 @@
 #include "camera.h"
+#include "globals.h"
 #include <QtMath>
 #include <QMatrix3x3>
 
@@ -7,6 +8,8 @@ Camera::Camera()
 {
     // Camera position
     position = QVector3D(0.0, 2.0, 6.0);
+    isOrbital = false;
+
 }
 
 QVector4D Camera::getLeftRightBottomTop()
@@ -61,6 +64,43 @@ QVector2D Camera::worldToScreenPoint(const QVector3D &pointWorld)
     const QVector2D pointScreen = pointViewport * QVector2D(viewportWidth, viewportHeight);
     return pointScreen;
 }
+
+void Camera::lookAt(const QVector3D v)
+{
+
+    QVector3D forward = position - v;
+    forward.normalize();
+
+    QVector3D tmp = QVector3D(0,1,0);
+    QVector3D right = QVector3D::crossProduct(tmp,forward);
+
+}
+
+void Camera::updateOrbitalCam()
+{
+    if (isOrbital)
+    {
+        //Setting up orbital camera
+        static float timer;
+        static const float dt = 1.0/60.0f; // Delta time
+        float rotSpeed = 0.5f;
+        float xSpread = 10.0f;
+        float zSpread = 10.0f;
+        float yOffset = 3.5f;
+        QVector3D centerPoint;
+
+        timer += dt * rotSpeed;
+        float x = -cos(timer)* xSpread;
+        float z = sin(timer) * zSpread;
+        position = QVector3D(x,yOffset,z) + centerPoint;
+        lookAt(centerPoint);
+
+        qDebug("%f_%f_%f", position.x(),position.y(),position.z());
+    }
+
+
+}
+
 
 void Camera::prepareMatrices()
 {

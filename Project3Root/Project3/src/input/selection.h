@@ -24,7 +24,8 @@ signals:
 
     void entitySelected(Entity *);
     void onClick(Entity *entity = nullptr);
-    void updateWidget();
+    void updateMiscSettings();
+    void updateOpenGLWidget();
 
 public slots:
 

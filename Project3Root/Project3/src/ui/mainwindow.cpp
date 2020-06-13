@@ -121,7 +121,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(miscSettingsWidget, SIGNAL(settingsChanged()), this, SLOT(updateRender()));
 
     connect(selection, SIGNAL(onClick(Entity*)), this, SLOT(onEntitySelectedFromSceneView(Entity*)));
-
+    connect(selection, SIGNAL(updateOpenGLWidget()),this, SLOT(updateRender()));
 
     hierarchyWidget->updateLayout();
     resourcesWidget->updateLayout();

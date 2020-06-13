@@ -32,7 +32,7 @@ MiscSettingsWidget::MiscSettingsWidget(QWidget *parent) :
     connect(ui->depthSpin, SIGNAL(valueChanged(double)), this, SLOT(onDOFDepthChanged(double)));
     connect(ui->falloffSpin, SIGNAL(valueChanged(double)), this, SLOT(onDOFFalloffChanged(double)));
 
-    connect(selection, SIGNAL(updateWidget()), this, SLOT(updateSettings()));
+    connect(selection, SIGNAL(updateMiscSettings()), this, SLOT(updateSettings()));
 
 }
 

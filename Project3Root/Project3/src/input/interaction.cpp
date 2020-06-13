@@ -68,6 +68,7 @@ bool Interaction::idle()
         }
     }
 
+
     return false;
 }
 void Interaction::generateBuffers(int width, int height)
@@ -296,6 +297,8 @@ bool Interaction::navigate()
         nextState = State::Idle;
     }
 
+
+
     return true;
 }
 
@@ -335,7 +338,7 @@ bool Interaction::focus()
 
     if (t == 1.0f) {
         nextState = State::Idle;
-        idle = true;;
+        idle = true;
     }
 
     return true;
