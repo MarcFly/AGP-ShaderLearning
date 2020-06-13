@@ -241,6 +241,10 @@ void OpenGLWidget::showTextureWithName(QString textureName)
 {
     renderer->showTexture(textureName);
 }
+void OpenGLWidget::forceResize()
+{
+    renderer->resize(camera->viewportWidth, camera->viewportHeight);
+}
 void OpenGLWidget::frame()
 {
     static int framesSinceLastInteraction = 0;

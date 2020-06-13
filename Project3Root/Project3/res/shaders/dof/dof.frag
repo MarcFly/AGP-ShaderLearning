@@ -31,8 +31,9 @@ void main()
     // Value if between fDist +- fDepth = 0
     // Value over fDist+- fDepth starts falling off and reaches max at fDist+(fFalloff * fDepth/2)
 
-    float val = (fDist+fDepth - rD) - (fDist - fDepth - rD);
-    val = abs(val) / fFalloff;
+    float val = clamp(abs(fDist - rD) / fDepth, 0.,1.);
+    val = (abs(fDist - rD) - fDepth);
+    val = val / fFalloff;
 
     outColor = val;
 }

@@ -25,9 +25,9 @@ public:
     int blurType = 0; // 0 = Gaussian
 
     // DOF Controls
-    float dofFocus = 5.;
-    float dofDepth = 2.;
-    float dofFalloff = .5;
+    float dofFocus = 10.;
+    float dofDepth = 20.;
+    float dofFalloff = 4.;
     bool checkDOF = true;
 
 

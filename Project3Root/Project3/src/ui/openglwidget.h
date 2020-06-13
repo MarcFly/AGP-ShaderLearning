@@ -56,6 +56,8 @@ public slots:
 
     void handleLoggedMessage(const QOpenGLDebugMessage &debugMessage);
 
+    void forceResize();
+
 private:
 
     QTimer timer;

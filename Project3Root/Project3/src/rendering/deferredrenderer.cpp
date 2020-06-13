@@ -429,6 +429,7 @@ void DeferredRenderer::dofPrep(int w, int h)
 
     dofBlurBO->bind();
     dofBlurBO->addColorAttachment(0, fboFinal);
+    dofBlurBO->addColorAttachment(1, stepBlur);
     dofBlurBO->addDepthAttachment(fboDepth);
     dofBlurBO->checkStatus();
     dofBlurBO->release();
@@ -543,7 +544,7 @@ void DeferredRenderer::PassDOF(Camera *camera)
     dofMaskBO->release();
 
 
-    //PassBlur(dofBlurBO, fboFinal, dofMask);
+    PassBlur(dofBlurBO, fboFinal, dofMask);
 
 
 

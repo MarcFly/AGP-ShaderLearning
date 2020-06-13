@@ -472,4 +472,5 @@ void MainWindow::onRenderOutputChanged(QString name)
 {
     openGLWidget->showTextureWithName(name);
     openGLWidget->update();
+    openGLWidget->forceResize();
 }
