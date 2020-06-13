@@ -106,6 +106,7 @@ void Interaction::generateBuffers(int width, int height)
     frameBuffer->checkStatus();
     frameBuffer->release();
 }
+
 void Interaction::passMeshes()
 {
     QOpenGLShaderProgram &program = mpProgram->program;
@@ -186,7 +187,6 @@ bool Interaction::mousePicking()
     passMeshes();
     GLfloat* pixel = (GLfloat*)malloc(sizeof(GLfloat)*3);
     glReadPixels(input->mousex, camera->viewportHeight - input->mousey, 1, 1, GL_RGB, GL_FLOAT, pixel);
-    qDebug("%f,%f,%f", pixel[0],pixel[1], pixel[2]);
 
     frameBuffer->release();
 

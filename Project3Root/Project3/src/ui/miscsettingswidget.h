@@ -21,6 +21,7 @@ signals:
 
 public slots:
 
+    void updateSettings();
     void onCameraSpeedChanged(double speed);
     void onCameraFovYChanged(double speed);
     void onMaxSubmeshesChanged(int n);

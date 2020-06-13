@@ -80,13 +80,29 @@ void Scene::handleResourcesAboutToDie()
 
 void Scene::read(const QJsonObject &json)
 {
+    //Entity Iteration
     for (QJsonObject::const_iterator i = json.begin(); i != json.end(); i++)
     {
-        Entity* ret = addEntity();
+        QString key = i.key();
+        if (key != "MiscSettings")
+        {
+            Entity* ret = addEntity();
 
-        QJsonObject obj = i->toObject();
-        ret->read(obj);
+            QJsonObject obj = i->toObject();
+            ret->read(obj);
+        }
+        else
+            break;
     }
+    //Misc Settings Iteration
+    for (QJsonObject::const_iterator i = json.begin(); i != json.end(); i++)
+    {
+        QJsonObject obj = i->toObject();
+        miscSettings->read(obj);
+    }
+
+
+
 }
 
 void Scene::write(QJsonObject &json)
@@ -99,5 +115,9 @@ void Scene::write(QJsonObject &json)
         QString goIndex = QString::number(i);
         json.insert(goIndex,go);
     }    
+
+    QJsonObject miscSettingsJsonObject;
+    miscSettings->write(miscSettingsJsonObject);
+    json.insert("MiscSettings", miscSettingsJsonObject);
 }
 
