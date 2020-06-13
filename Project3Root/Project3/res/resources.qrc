@@ -26,7 +26,6 @@
         <file>shaders/outline/outline.frag</file>
         <file>shaders/grid-background/bggrid.frag</file>
         <file>shaders/blur/gaussian.frag</file>
-        <file>shaders/depth-of-field/dof.frag</file>
-        <file>shaders/depth-of-field/dof.vert</file>
+        <file>shaders/dof/dof.frag</file>
     </qresource>
 </RCC>

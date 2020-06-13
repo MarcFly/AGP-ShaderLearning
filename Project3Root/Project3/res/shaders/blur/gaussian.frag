@@ -31,10 +31,8 @@ void main()
 
     vec2 viewP = textureSize(colorMap, 0).xy;
 
-    vec2 texCoords = gl_FragCoord.xy / viewP;
-
     vec3 baseCol = texture2D(colorMap, texCoord).rgb;
-    float maskval = clamp(texture2D(Mask, texCoords).r, 0., 1.);
+    float maskval = clamp(texture2D(Mask, texCoord).r, 0., 1.);
 
     vec2 dir_corrected = normalize(dir) / viewP;
 

@@ -30,6 +30,8 @@ private:
 
     void blurDebugPrep(int w, int h);
 
+    void dofPrep(int w, int h);
+
     void CleanFirstBuffers();
 
     void passMeshes(Camera *camera);
@@ -41,6 +43,7 @@ private:
 
     void PassBlur(FramebufferObject* fb, GLuint Read, GLuint Mask = UINT_MAX);
 
+    void PassDOF(Camera* camera);
     // Shaders
     ShaderProgram *gpassProgram = nullptr;
     ShaderProgram *deferredProgram = nullptr;
@@ -51,6 +54,8 @@ private:
     ShaderProgram *maskProgram = nullptr;
 
     ShaderProgram *blurProgram = nullptr;
+
+    ShaderProgram *dofMaskProgram = nullptr;
 
     // MAIN Textures Needed
 
@@ -70,6 +75,8 @@ private:
     // Blur Based Passes
     GLuint stepBlur = 0;
 
+    GLuint dofMask = 0;
+
     // Framebuffers, defined for use
 
     OpenGLState mainState;
@@ -82,22 +89,15 @@ private:
 
     FramebufferObject *dofBlurBO = nullptr;
     FramebufferObject *dofMaskBO = nullptr;
-    OpenGLState dofMaskState;
 
     // Editor Framebuffers
     FramebufferObject *gridbgBO = nullptr;
-    OpenGLState gridbgState;
+    OpenGLState visualHintsState;
 
     FramebufferObject *outlineBO = nullptr;
     FramebufferObject *maskBO = nullptr;
-    OpenGLState outlineState;
-    OpenGLState maskState;
 
     FramebufferObject *blurDebugBO = nullptr;
-    OpenGLState blurState;
-
-
-
 
 };
 

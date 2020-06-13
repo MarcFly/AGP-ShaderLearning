@@ -126,13 +126,13 @@ void MiscSettingsWidget::onOutlineWidthChanged(double val)
 
 void MiscSettingsWidget::onDOFDistChanged(double val)
 {
-    miscSettings->dofDepth = val;
+    miscSettings->dofFocus = val;
     emit settingsChanged();
 }
 
 void MiscSettingsWidget::onDOFDepthChanged(double val)
 {
-    miscSettings->dofFocus = val;
+    miscSettings->dofDepth = val;
     emit settingsChanged();
 }
 

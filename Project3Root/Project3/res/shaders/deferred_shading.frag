@@ -54,9 +54,13 @@ void main(void)
 
     // Phong = Get ldir that reflects off of Normal of the Point
     vec3 PhongVec = normalize(reflect(ldir, N));
-    //float k_s = pow(max(dot(camVec, PhongVec), 0.), 16.);
+    //k_s = pow(max(dot(camVec, PhongVec), 0.), 16.);
 
-    dlCol.rgb += albedoSpec.rgb * lightColor.rgb * (albedoSpec.a * k_s);
+    // Techincally we put albedoSpec val, but we don't pass it
+    // So I put 1 instead to get some specular
+    // Alhtough it is subtle bcause BlinVec
+    dlCol.rgb += albedoSpec.rgb * lightColor.rgb * (1. * k_s);
+    finalCol += dlCol * lightIntensity * attenuation;
 
-    outColor = vec4(finalCol.rgb + dlCol * lightIntensity * attenuation, 1.);
+    outColor = vec4(finalCol, 1.);
 }
