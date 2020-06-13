@@ -26,14 +26,14 @@ DeferredRenderer::DeferredRenderer() :
     gboAlbedoSpec(QOpenGLTexture::Target2D),
     gboNormal(QOpenGLTexture::Target2D),
     fboEditorDepth(QOpenGLTexture::Target2D),
-    fboOutlineMask(QOpenGLTexture::Target2D)
-
-
+    fboOutlineMask(QOpenGLTexture::Target2D),
+    stepBlur(QOpenGLTexture::Target2D)
 {
     fbo = nullptr;
     gbo = nullptr;
     gridbgBO = nullptr;
     outlineBO = nullptr;
+    blurDebugBO = nullptr;
 
     // List of Textures
     addTexture("Final Render");
@@ -102,6 +102,10 @@ DeferredRenderer::DeferredRenderer() :
     maskState.depthFunc = GL_LEQUAL;
     maskState.faceCulling = true;
 
+    // Blur State
+    blurState = mainState;
+    //blurState.blending = true;
+
 }
 
 DeferredRenderer::~DeferredRenderer()
@@ -111,6 +115,7 @@ DeferredRenderer::~DeferredRenderer()
     delete gridbgBO;
     delete maskBO;
     delete outlineBO;
+    delete blurDebugBO;
 }
 
 void DeferredRenderer::initialize()
@@ -159,6 +164,14 @@ void DeferredRenderer::initialize()
     outlineProgram->fragmentShaderFilename = "res/shaders/outline/outline.frag";
     outlineProgram->includeForSerialization = false;
 
+    // Blur Program
+
+    blurProgram = resourceManager->createShaderProgram();
+    blurProgram->name = "Blur";
+    blurProgram->vertexShaderFilename = "res/shaders/blit.vert";
+    blurProgram->fragmentShaderFilename = "res/shaders/blur/gaussian.frag";
+    blurProgram->includeForSerialization = false;
+
     // Create the main FBO
     fbo = new FramebufferObject;
     fbo->create();
@@ -174,6 +187,9 @@ void DeferredRenderer::initialize()
 
     outlineBO = new FramebufferObject;
     outlineBO->create();
+
+    blurDebugBO = new FramebufferObject;
+    blurDebugBO->create();
 
     gl->glClearColor(0.,0.,0.,0.);
     gl->glClearDepth(1.0);
@@ -195,6 +211,9 @@ void DeferredRenderer::finalize()
 
     outlineBO->destroy();
     delete outlineBO;
+
+    blurDebugBO->destroy();
+    delete blurDebugBO;
 
 }
 
@@ -340,6 +359,35 @@ void DeferredRenderer::outlinePrep(int w, int h)
 
 }
 
+void DeferredRenderer::blurDebugPrep(int w, int h)
+{
+    // We have a specific blurdebugBO so that debug of the blur is written
+    // in the editor and the specific passes that use a blur, are written
+    // in the desired texture
+    // For that, PassBlur receives a FramebufferObject with a
+    // - Write Texture / Depth Texture / Step Blur Texture
+    // Everything else is passed as read
+
+    if (stepBlur == 0) gl->glDeleteTextures(1, &stepBlur);
+    gl->glGenTextures(1, &stepBlur);
+    gl->glBindTexture(GL_TEXTURE_2D, stepBlur);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+    blurDebugBO->bind();
+    blurDebugBO->addColorAttachment(0, fboEditor);
+    blurDebugBO->addColorAttachment(1, stepBlur);
+    blurDebugBO->addDepthAttachment(fboEditorDepth);
+    // In contrast to Geometry Pass, we don't decide here which buffer si being written
+    // Or which buffers are written, it is done in 2 passes of blur shader
+    blurDebugBO->checkStatus();
+    blurDebugBO->release();
+}
+
 void DeferredRenderer::resize(int w, int h)
 {
     OpenGLErrorGuard guard("DeferredRenderer::resize()");
@@ -351,6 +399,7 @@ void DeferredRenderer::resize(int w, int h)
 
     outlinePrep(w,h);
 
+    blurDebugPrep(w,h);
     // Debug Preps
 
 }
@@ -364,9 +413,14 @@ void DeferredRenderer::CleanFirstBuffers()
     //  Does not work with buffers that do not reuse textures, which have to be cleaned at
     //  execution time,  I don't know why but that is the way OpenGL shows us issues
 
+    if(shownTexture() == "Final Render")
+    {
     fbo->bind();
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     fbo->release();
+    }
+    else
+    {
 
     gridbgBO->bind();
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -375,6 +429,11 @@ void DeferredRenderer::CleanFirstBuffers()
     outlineBO->bind();
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     outlineBO->release();
+
+    blurDebugBO->bind();
+    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    blurDebugBO->release();
+    }
 }
 
 void DeferredRenderer::render(Camera *camera)
@@ -394,14 +453,72 @@ void DeferredRenderer::render(Camera *camera)
     {
         PassGridBackground(camera);
         PassOutline(camera);
+        PassBlur(blurDebugBO, fboEditor);
     }
 
     passBlit();
 }
 
+void DeferredRenderer::PassBlur(FramebufferObject* fb, GLuint Read, GLuint Mask)
+{
+    if(fb == nullptr) return;
+
+    Mask = (Mask == UINT_MAX) ? resourceManager->texWhite->textureId() : Mask;
+
+    OpenGLErrorGuard guard("DeferredRenderer::PassBlur()");
+
+    mainState.apply();
+
+    fb->bind();
+    QOpenGLShaderProgram &program = blurProgram->program;
+    if(program.bind())
+    {
+        // Prepare uniforms, we will bind textures later
+        program.setUniformValue("colorMap", 0);
+        program.setUniformValue("Mask", 1);
+        program.setUniformValue("ratio", miscSettings->blurVal);
+
+        // Pass 1 - Write to 1st Step of Blur (Vertical or Horizontal, does not matter)
+
+        QVector2D dir(0.,1.);
+        gl->glDrawBuffer(GL_COLOR_ATTACHMENT1);
+        program.setUniformValue("dir", dir.x(), dir.y());
+
+        gl->glActiveTexture(GL_TEXTURE0);
+        gl->glBindTexture(GL_TEXTURE_2D, Read);
+
+        gl->glActiveTexture(GL_TEXTURE1);
+        gl->glBindTexture(GL_TEXTURE_2D, Mask);
+
+        resourceManager->quad->submeshes[0]->draw();
+
+        // Pass 2 - Write to Expected (Attachment 0) and Read from the previous write
+        // Also, direction should be transpose of the last one
+
+        gl->glDrawBuffer(GL_COLOR_ATTACHMENT0);
+        program.setUniformValue("dir", dir.y(), dir.x());
+
+        gl->glActiveTexture(GL_TEXTURE0);
+        gl->glBindTexture(GL_TEXTURE_2D, stepBlur);
+
+        gl->glActiveTexture(GL_TEXTURE1);
+        gl->glBindTexture(GL_TEXTURE_2D, Mask);
+
+        resourceManager->quad->submeshes[0]->draw();
+
+
+
+        fb->release();
+    }
+
+
+}
+
 void DeferredRenderer::PassOutline(Camera *camera)
 {
-    if(selection->entities[0] == nullptr || !miscSettings->renderOutline) return;
+    OpenGLErrorGuard guard("DeferredRenderer::PassOutline()");
+
+    if(selection->entities[0] == nullptr) return;
 
     maskState.apply();
     maskBO->bind();
@@ -435,6 +552,8 @@ void DeferredRenderer::PassOutline(Camera *camera)
         maskBO->release();
     }
 
+    if(!miscSettings->renderOutline) return;
+
     outlineState.apply();
     outlineBO->bind();
     {
@@ -457,6 +576,7 @@ void DeferredRenderer::PassOutline(Camera *camera)
 
 void DeferredRenderer::PassGridBackground(Camera *camera)
 {
+    OpenGLErrorGuard guard("DeferredRenderer::PassGridBackground()");
 
     if(!miscSettings->renderGrid) return;
     gridbgState.apply();
@@ -491,6 +611,8 @@ void DeferredRenderer::PassGridBackground(Camera *camera)
 
 void DeferredRenderer::passMeshes(Camera *camera)
 {
+    OpenGLErrorGuard guard("DeferredRenderer::PassMeshes()");
+
     gpassState.apply();
 
     gbo->bind();
@@ -627,8 +749,7 @@ void DeferredRenderer::passMeshes(Camera *camera)
 
 void DeferredRenderer::passLighting(Camera* camera)
 {
-    if(shownTexture() != "Final Render")
-        return;
+    OpenGLErrorGuard guard("DeferredRenderer::PassLighting()");
 
     fbo->bind();
 

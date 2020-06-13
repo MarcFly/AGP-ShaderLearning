@@ -28,6 +28,8 @@ private:
     void gridbgPrep(int w, int h);
     void outlinePrep(int w, int h);
 
+    void blurDebugPrep(int w, int h);
+
     void CleanFirstBuffers();
 
     void passMeshes(Camera *camera);
@@ -37,6 +39,8 @@ private:
     void PassGridBackground(Camera* camera);
     void PassOutline(Camera* camera);
 
+    void PassBlur(FramebufferObject* fb, GLuint Read, GLuint Mask = UINT_MAX);
+
     // Shaders
     ShaderProgram *gpassProgram = nullptr;
     ShaderProgram *deferredProgram = nullptr;
@@ -45,6 +49,8 @@ private:
     ShaderProgram *gridbgProgram = nullptr;
     ShaderProgram *outlineProgram = nullptr;
     ShaderProgram *maskProgram = nullptr;
+
+    ShaderProgram *blurProgram = nullptr;
 
     // MAIN Textures Needed
 
@@ -61,8 +67,8 @@ private:
     GLuint fboEditorDepth = 0;
     GLuint fboOutlineMask = 0;
 
-
-
+    // Blur Based Passes
+    GLuint stepBlur = 0;
 
     // Framebuffers, defined for use
 
@@ -74,6 +80,11 @@ private:
 
     OpenGLState lightingState;
 
+    FramebufferObject *dofBlurBO = nullptr;
+    FramebufferObject *dofMaskBO = nullptr;
+    OpenGLState dofMaskState;
+
+    // Editor Framebuffers
     FramebufferObject *gridbgBO = nullptr;
     OpenGLState gridbgState;
 
@@ -81,6 +92,12 @@ private:
     FramebufferObject *maskBO = nullptr;
     OpenGLState outlineState;
     OpenGLState maskState;
+
+    FramebufferObject *blurDebugBO = nullptr;
+    OpenGLState blurState;
+
+
+
 
 };
 

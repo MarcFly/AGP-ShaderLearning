@@ -5,11 +5,8 @@ out vec4 outColor;
 uniform sampler2D colorMap;
 uniform sampler2D Mask;
 
-uniform vec2 viewP;
 uniform vec2 dir;
 uniform float ratio;
-
-uniform float num_passes;
 
 in vec2 texCoord;
 
@@ -32,13 +29,14 @@ void main()
     weights[7] = 0.113806;
     weights[6] = 0.13424;
 
+    vec2 viewP = textureSize(colorMap, 0).xy;
+
     vec2 texCoords = gl_FragCoord.xy / viewP;
 
     vec3 baseCol = texture2D(colorMap, texCoord).rgb;
     float maskval = clamp(texture2D(Mask, texCoords).r, 0., 1.);
 
     vec2 dir_corrected = normalize(dir) / viewP;
-    //dir_corrected = dir / viewP;
 
     float sumweights = 0.;
     vec3 blurCol = vec3(0.);
@@ -59,6 +57,6 @@ void main()
     blurCol /= sumweights;
 
     vec3 finalCol = mix(baseCol, blurCol, ratio*maskval);
-    outColor = vec4(finalCol,1./num_passes);
+    outColor = vec4(finalCol,1.);
 
 }
