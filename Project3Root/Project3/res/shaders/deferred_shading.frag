@@ -7,6 +7,7 @@ uniform vec3 lightDirection;
 uniform vec3 lightColor;
 uniform float lightIntensity;
 uniform float lightRange;
+uniform float AMBIENT;
 
 uniform sampler2D gboPosition;
 uniform sampler2D gboNormal;
@@ -34,8 +35,8 @@ void main(void)
     // Diffuse - Lambertian
     // Specular - Fresnel, the more parallel the viewer is to a surface, more reflective it becomes
 
-    vec3 finalCol = vec3(0.);
-
+    vec3 finalCol = vec3(albedoSpec.rgb * AMBIENT);
+    vec3 dlCol = vec3(0.);
     vec3 ldir = lightDirection;
     if(lightType == 0)
         ldir = rPos - lightPosition;
@@ -43,7 +44,7 @@ void main(void)
 
     // Our definition of Diffuse, is basically what is really called Lambertian Reflection
     float k_d = max(dot(ldir,N), 0.);
-    finalCol.rgb += albedoSpec.rgb * k_d * lightColor.rgb;
+    dlCol.rgb += albedoSpec.rgb * k_d * lightColor.rgb;
 
     // We need to pass camera position or direction to get specular ffs
     // Blin = Halfway direction between CameraVector and Light Direction
@@ -55,7 +56,7 @@ void main(void)
     vec3 PhongVec = normalize(reflect(ldir, N));
     //float k_s = pow(max(dot(camVec, PhongVec), 0.), 16.);
 
-    finalCol.rgb += albedoSpec.rgb * lightColor.rgb * (albedoSpec.a * k_s);
+    dlCol.rgb += albedoSpec.rgb * lightColor.rgb * (albedoSpec.a * k_s);
 
-    outColor = vec4(finalCol.rgb, attenuation * lightIntensity);
+    outColor = vec4(finalCol.rgb + dlCol * lightIntensity * attenuation, 1.);
 }

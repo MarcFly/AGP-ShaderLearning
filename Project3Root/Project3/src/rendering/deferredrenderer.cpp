@@ -69,9 +69,9 @@ DeferredRenderer::DeferredRenderer() :
     lightingState = mainState;
     // Depth Test is default false, POINT lights don't occlude each other
     // Depth write obviously false because we don't want to tamper with depth buffer
-    lightingState.blending = true;  // Light+Previous Ambient Written
-    mainState.blendFuncSrc = GL_SRC_ALPHA;
-    mainState.blendFuncDst = GL_ONE_MINUS_SRC_ALPHA;
+    lightingState.blending = true;         // No blend
+    lightingState.blendFuncSrc = GL_ONE;    // New Color wins
+    lightingState.blendFuncDst = GL_ZERO;   // Last color is fucked
     lightingState.faceCulling = true;
     lightingState.faceCullingMode = GL_FRONT;   // We cull what is in front, because we write whats inside the sphere (not before)
 }
@@ -394,8 +394,6 @@ void DeferredRenderer::passLighting(Camera* camera)
 
     fbo->bind();
 
-    // Not clean because we use the texture as ambient
-
     QOpenGLShaderProgram &program = deferredProgram->program;
 
     lightingState.apply();
@@ -416,6 +414,8 @@ void DeferredRenderer::passLighting(Camera* camera)
 
         program.setUniformValue("ViewPort", camera->viewportWidth, camera->viewportHeight);
         program.setUniformValue("camPos", camera->position);
+        program.setUniformValue("AMBIENT", miscSettings->AMBIENT);
+
         // Get all light indices
         for(auto entity : scene->entities)
         {
