@@ -10,6 +10,7 @@ public:
 
     // TODO: Maybe not the best place for this stuff...
     QColor backgroundColor;
+    QColor gridColor;
     float AMBIENT = 0.5f;
     bool renderLightSources = true;
 

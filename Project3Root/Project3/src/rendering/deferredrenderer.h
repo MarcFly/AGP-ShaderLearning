@@ -25,15 +25,22 @@ private:
 
     void fboPrep(int w, int h);
     void gboPrep(int w, int h);
+    void gridbgPrep(int w, int h);
+
+    void CleanFirstBuffers();
 
     void passMeshes(Camera *camera);
     void passLighting(Camera* camera);
     void passBlit();
 
+    void PassGridBackground(Camera* camera);
+
     // Shaders
     ShaderProgram *gpassProgram = nullptr;
     ShaderProgram *deferredProgram = nullptr;
     ShaderProgram *blitProgram = nullptr;
+
+    ShaderProgram *gridbgProgram = nullptr;
 
     // MAIN Textures Needed
 
@@ -46,17 +53,24 @@ private:
     GLuint gboAlbedoSpec = 0;
     GLuint gboNormal = 0;
 
+    // Editor Grid and Background Pass
+    GLuint fboGridBgDepth = 0;
+
+
 
 
     // Framebuffers, defined for use
 
     OpenGLState mainState;
     FramebufferObject *fbo = nullptr; // Main FBO
-    // Will use fbo for grid and background also
+
     OpenGLState gpassState;
     FramebufferObject *gbo = nullptr; // Geometry Pass
 
     OpenGLState lightingState;
+
+    FramebufferObject *gridbgBO = nullptr;
+    OpenGLState gridbgState;
 
 };
 

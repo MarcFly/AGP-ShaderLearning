@@ -24,12 +24,14 @@ DeferredRenderer::DeferredRenderer() :
     fboDepth(QOpenGLTexture::Target2D),
     gboPosition(QOpenGLTexture::Target2D),
     gboAlbedoSpec(QOpenGLTexture::Target2D),
-    gboNormal(QOpenGLTexture::Target2D)
+    gboNormal(QOpenGLTexture::Target2D),
+    fboGridBgDepth(QOpenGLTexture::Target2D)
 
 
 {
     fbo = nullptr;
     gbo = nullptr;
+    gridbgBO = nullptr;
 
     // List of Textures
     addTexture("Final Render");
@@ -74,12 +76,20 @@ DeferredRenderer::DeferredRenderer() :
     lightingState.blendFuncDst = GL_ZERO;   // Last color is fucked
     lightingState.faceCulling = true;
     lightingState.faceCullingMode = GL_FRONT;   // We cull what is in front, because we write whats inside the sphere (not before)
+
+    // Grid Background State
+    gridbgState = mainState;
+    // We don't want depth test, we will do custom test in shader
+    // Same with depth write, we don't want that, clean depth buffer
+    gridbgState.blending = true; // Mixing Ambient with the grid
+    // We use main function because we will be mixing based on alpha
 }
 
 DeferredRenderer::~DeferredRenderer()
 {
     delete fbo;
     delete gbo;
+    delete gridbgBO;
 }
 
 void DeferredRenderer::initialize()
@@ -107,12 +117,22 @@ void DeferredRenderer::initialize()
     blitProgram->fragmentShaderFilename = "res/shaders/blit.frag";
     blitProgram->includeForSerialization = false;
 
+    // Grid Background Program
+    gridbgProgram = resourceManager->createShaderProgram();
+    gridbgProgram->name = "GridBg";
+    gridbgProgram->vertexShaderFilename = "res/shaders/blit.vert";
+    gridbgProgram->fragmentShaderFilename = "res/shaders/grid-background/bggrid.frag";
+    gridbgProgram->includeForSerialization = false;
+
     // Create the main FBO
     fbo = new FramebufferObject;
     fbo->create();
 
     gbo = new FramebufferObject;
     gbo->create();
+
+    gridbgBO = new FramebufferObject;
+    gridbgBO->create();
 
     gl->glClearColor(0.,0.,0.,0.);
     gl->glClearDepth(1.0);
@@ -203,7 +223,7 @@ void DeferredRenderer::gboPrep(int w, int h)
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 
     gbo->bind();
     gbo->addColorAttachment(0, fboFinal);
@@ -219,6 +239,30 @@ void DeferredRenderer::gboPrep(int w, int h)
 
 }
 
+void DeferredRenderer::gridbgPrep(int w, int h)
+{
+    if (fboGridBgDepth == 0) gl->glDeleteTextures(1, &fboGridBgDepth);
+    gl->glGenTextures(1, &fboGridBgDepth);
+    gl->glBindTexture(GL_TEXTURE_2D, fboGridBgDepth);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, w, h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+
+
+    // We reuse fboDepth without TESTING OR WRITING
+    // We read GL_FragDepth because it is used for determining in fragment
+    // if we hit grid or nah
+    // If we have something being corrupted, we will use the fboGridBGDepth and pass fboDepth for read
+
+    gridbgBO->bind();
+    gridbgBO->addColorAttachment(0, fboEditor);
+    gridbgBO->addDepthAttachment(fboGridBgDepth);
+    gridbgBO->checkStatus();
+    gridbgBO->release();
+}
 
 void DeferredRenderer::resize(int w, int h)
 {
@@ -227,26 +271,78 @@ void DeferredRenderer::resize(int w, int h)
     fboPrep(w,h);
     gboPrep(w,h);
 
+    gridbgPrep(w,h);
+
     // Debug Preps
 
+}
+
+void DeferredRenderer::CleanFirstBuffers()
+{
+    fbo->bind();
+    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    fbo->release();
+
+    gridbgBO->bind();
+    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    gridbgBO->release();
 }
 
 void DeferredRenderer::render(Camera *camera)
 {
     OpenGLErrorGuard guard("DeferredRenderer::render()");
 
-    // Instead of doing so in each function, we clean here
-    fbo->bind();
-    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    fbo->release();
+    CleanFirstBuffers();
 
     // Passes
     passMeshes(camera);
 
-    passLighting(camera);
-
+    if(shownTexture() == "Final Render")
+    {
+        passLighting(camera);
+    }
+    else if(shownTexture() == "Editor")
+    {
+        PassGridBackground(camera);
+    }
 
     passBlit();
+}
+
+void DeferredRenderer::PassGridBackground(Camera *camera)
+{
+
+    if(!miscSettings->renderGrid) return;
+    gridbgState.apply();
+
+    gridbgBO->bind();
+
+    // Color will be reused from fboEditor and blended in, so not cleared
+    gl->glClear(GL_DEPTH_BUFFER_BIT);
+
+    QOpenGLShaderProgram &program = gridbgProgram->program;
+    if(program.bind())
+    {
+        program.setUniformValue("camParams", camera->getLeftRightBottomTop());
+        program.setUniformValue("znear", camera->znear);
+        program.setUniformValue("worldMatrix", camera->worldMatrix);
+        program.setUniformValue("viewMatrix", camera->viewMatrix);
+        program.setUniformValue("projectionMatrix", camera->projectionMatrix);
+
+
+        program.setUniformValue("bgCol", miscSettings->backgroundColor.redF(), miscSettings->backgroundColor.greenF(),miscSettings->backgroundColor.blueF());
+        program.setUniformValue("gridCol", miscSettings->gridColor.redF(), miscSettings->gridColor.greenF(),miscSettings->gridColor.blueF());
+
+        program.setUniformValue("depth", 0);
+        gl->glActiveTexture(GL_TEXTURE0);
+        gl->glBindTexture(GL_TEXTURE_2D, fboDepth);
+
+        resourceManager->quad->submeshes[0]->draw();
+    }
+
+    gridbgBO->release();
+
+    mainState.apply();
 }
 
 void DeferredRenderer::passMeshes(Camera *camera)
@@ -279,7 +375,7 @@ void DeferredRenderer::passMeshes(Camera *camera)
         gl->glActiveTexture(GL_TEXTURE3);
         gl->glBindTexture(GL_TEXTURE_2D, gboAlbedoSpec);
 
-        program.setUniformValue("fboAmbient", 4);
+        program.setUniformValue("fboEditor", 4);
         gl->glActiveTexture(GL_TEXTURE4);
         gl->glBindTexture(GL_TEXTURE_2D, fboEditor);
 

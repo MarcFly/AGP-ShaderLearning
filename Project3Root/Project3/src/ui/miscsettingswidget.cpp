@@ -18,6 +18,7 @@ MiscSettingsWidget::MiscSettingsWidget(QWidget *parent) :
     connect(ui->spinCameraSpeed, SIGNAL(valueChanged(double)), this, SLOT(onCameraSpeedChanged(double)));
     connect(ui->spinFovY, SIGNAL(valueChanged(double)), this, SLOT(onCameraFovYChanged(double)));
     connect(ui->buttonBackgroundColor, SIGNAL(clicked()), this, SLOT(onBackgroundColorClicked()));
+    connect(ui->buttonGridColor, SIGNAL(clicked()), this, SLOT(onGridColorClicked()));
     connect(ui->checkBoxGrid, SIGNAL(clicked()), this, SLOT(onVisualHintChanged()));
     connect(ui->checkBoxLightSources, SIGNAL(clicked()), this, SLOT(onVisualHintChanged()));
     connect(ui->checkBoxSelectionOutline, SIGNAL(clicked()), this, SLOT(onVisualHintChanged()));
@@ -71,6 +72,21 @@ void MiscSettingsWidget::onBackgroundColorClicked()
         QString colorName = color.name();
         ui->buttonBackgroundColor->setStyleSheet(QString::fromLatin1("background-color: %0").arg(colorName));
         miscSettings->backgroundColor = color;
+
+
+
+        emit settingsChanged();
+    }
+}
+
+void MiscSettingsWidget::onGridColorClicked()
+{
+    QColor color = QColorDialog::getColor(miscSettings->gridColor, this, "Grid color");
+    if (color.isValid())
+    {
+        QString colorName = color.name();
+        ui->buttonGridColor->setStyleSheet(QString::fromLatin1("background-color: %0").arg(colorName));
+        miscSettings->gridColor = color;
 
 
 
