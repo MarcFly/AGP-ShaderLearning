@@ -32,7 +32,7 @@ public:
     float dofFalloff = 2.;
     bool checkDOF = true;
 
-    void read(const QJsonObject &json);
+    void read(QJsonObject &json);
     void write(QJsonObject &json);
 
 };

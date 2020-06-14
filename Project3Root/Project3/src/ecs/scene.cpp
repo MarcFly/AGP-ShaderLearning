@@ -80,6 +80,7 @@ void Scene::handleResourcesAboutToDie()
 
 void Scene::read(const QJsonObject &json)
 {
+    entities.clear();
     //Entity Iteration
     for (QJsonObject::const_iterator i = json.begin(); i != json.end(); i++)
     {
@@ -99,10 +100,7 @@ void Scene::read(const QJsonObject &json)
     {
         QJsonObject obj = i->toObject();
         miscSettings->read(obj);
-    }
-
-
-
+    }    
 }
 
 void Scene::write(QJsonObject &json)
@@ -118,6 +116,7 @@ void Scene::write(QJsonObject &json)
 
     QJsonObject miscSettingsJsonObject;
     miscSettings->write(miscSettingsJsonObject);
+    camera->write(miscSettingsJsonObject);
     json.insert("MiscSettings", miscSettingsJsonObject);
 }
 

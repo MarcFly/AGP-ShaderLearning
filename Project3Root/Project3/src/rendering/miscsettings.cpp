@@ -7,8 +7,9 @@ MiscSettings::MiscSettings() :
 
 }
 
-void MiscSettings::read(const QJsonObject &json)
+void MiscSettings::read(QJsonObject &json)
 {    
+    camera->read(json);
     for (QJsonObject::const_iterator j = json.begin(); j != json.end(); j++)
     {
 
@@ -79,12 +80,13 @@ void MiscSettings::read(const QJsonObject &json)
         }
     }
 
+
     emit selection->updateMiscSettings();
 
 }
 
 void MiscSettings::write(QJsonObject &json)
-{
+{    
     //Outline
     json["renderOutline"] = this->renderOutline;
     json["Outlinewidth"] = this->OutlineWidth;

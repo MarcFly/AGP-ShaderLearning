@@ -82,8 +82,8 @@ bool Interaction::idle()
 }
 void Interaction::generateBuffers(int width, int height)
 {
-    OpenGLErrorGuard guard("GenerateBuffers::render()");
-    if (renderTexture == 0)
+    OpenGLErrorGuard guard("MousePicking::GenerateBuffers::render()");
+    if (renderTexture >= 0)
     {
         gl->glDeleteTextures(1, &renderTexture);
     }
@@ -96,7 +96,7 @@ void Interaction::generateBuffers(int width, int height)
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, width, height, 0, GL_RGB, GL_FLOAT, nullptr);
 
-    if (depthTexture == 0)
+    if (depthTexture >= 0)
     {
         gl->glDeleteTextures(1, &depthTexture);
     }
@@ -346,7 +346,7 @@ bool Interaction::focus()
         finalCameraPosition = entityPosition + displacement;
     }
 
-    const float focusDuration = 0.5f;
+    const float focusDuration = 5.0f;
     time = qMin(focusDuration, time + 1.0f/60.0f); // TODO: Use frame delta time
     const float t = qPow(qSin(3.14159f * 0.5f * time / focusDuration), 0.5);
 
