@@ -16,6 +16,8 @@
 #include <QOpenGLTexture>
 #include <Qt3DCore/QTransform>
 
+#include <random>
+
 // https://learnopengl.com/Advanced-Lighting/Deferred-Shading
 
 DeferredRenderer::DeferredRenderer() :
@@ -28,7 +30,8 @@ DeferredRenderer::DeferredRenderer() :
     fboEditorDepth(QOpenGLTexture::Target2D),
     fboOutlineMask(QOpenGLTexture::Target2D),
     stepBlur(QOpenGLTexture::Target2D),
-    dofMask(QOpenGLTexture::Target2D)
+    dofMask(QOpenGLTexture::Target2D),
+    fboSSAO(QOpenGLTexture::Target2D)
 {
     fbo = nullptr;
     gbo = nullptr;
@@ -37,6 +40,8 @@ DeferredRenderer::DeferredRenderer() :
     blurDebugBO = nullptr;
     dofBlurBO = nullptr;
     dofMaskBO = nullptr;
+    ssaoBO = nullptr;
+    blurSSAO = nullptr;
 
     // List of Textures
     addTexture("Final Render");
@@ -45,6 +50,7 @@ DeferredRenderer::DeferredRenderer() :
     addTexture("Normals");
     addTexture("AlbedoSpec");
     addTexture("DOF Mask");
+    addTexture("SSAO Debug");
     addTexture("Depth");
     addTexture("Editor Depth");
     addTexture("Outline Mask");
@@ -105,6 +111,12 @@ DeferredRenderer::DeferredRenderer() :
     // DOF State is 2 Passes - Mask Pass = Geometry Pass
     // Blur Pass -> Main State, does not require a special State
 
+    // SSAO State
+    ssaoState = mainState;
+    // For now because i can't wrpa my head around blendfuncs
+    // no blending, full quad write and read from the ambient
+    // write the same to final and albedoSpec, will make sense later
+
 }
 
 DeferredRenderer::~DeferredRenderer()
@@ -117,6 +129,8 @@ DeferredRenderer::~DeferredRenderer()
     delete blurDebugBO;
     delete dofMaskBO;
     delete dofBlurBO;
+    delete ssaoBO;
+    delete blurSSAO;
 }
 
 void DeferredRenderer::initialize()
@@ -181,6 +195,19 @@ void DeferredRenderer::initialize()
     dofMaskProgram->fragmentShaderFilename = "res/shaders/dof/dof.frag";
     dofMaskProgram->includeForSerialization = false;
 
+    // Screen Space Ambient Occlusion Program
+    ssaoProgram = resourceManager->createShaderProgram();
+    ssaoProgram->name = "SSAO";
+    ssaoProgram->vertexShaderFilename = "res/shaders/blit.vert";
+    ssaoProgram->fragmentShaderFilename = "res/shaders/ao/ssao.frag";
+    ssaoProgram->includeForSerialization = false;
+
+    blurMaskProgram = resourceManager->createShaderProgram();
+    blurMaskProgram->name = "BlurMask";
+    blurMaskProgram->vertexShaderFilename = "res/shaders/blit.vert";
+    blurMaskProgram->fragmentShaderFilename = "res/shaders/blur/gMask.frag";
+    blurMaskProgram->includeForSerialization = false;
+
     // Create the main FBO
     fbo = new FramebufferObject;
     fbo->create();
@@ -205,6 +232,12 @@ void DeferredRenderer::initialize()
 
     dofBlurBO = new FramebufferObject;
     dofBlurBO->create();
+
+    ssaoBO = new FramebufferObject;
+    ssaoBO->create();
+
+    blurSSAO = new FramebufferObject;
+    blurSSAO->create();
 
     gl->glClearColor(0.,0.,0.,0.);
     gl->glClearDepth(1.0);
@@ -235,6 +268,12 @@ void DeferredRenderer::finalize()
 
     dofBlurBO->destroy();
     delete dofBlurBO;
+
+    ssaoBO->destroy();
+    delete ssaoBO;
+
+    blurSSAO->destroy();
+    delete blurSSAO;
 
 }
 
@@ -399,6 +438,16 @@ void DeferredRenderer::blurDebugPrep(int w, int h)
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 
+    if (stepFBlur == 0) gl->glDeleteTextures(1, &stepFBlur);
+    gl->glGenTextures(1, &stepFBlur);
+    gl->glBindTexture(GL_TEXTURE_2D, stepFBlur);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, w, h, 0, GL_RED, GL_FLOAT, nullptr);
+
     blurDebugBO->bind();
     blurDebugBO->addColorAttachment(0, fboEditor);
     blurDebugBO->addColorAttachment(1, stepBlur);
@@ -436,6 +485,33 @@ void DeferredRenderer::dofPrep(int w, int h)
 
 }
 
+void DeferredRenderer::ssaoPrep(int w, int h)
+{
+    if (fboSSAO == 0) gl->glDeleteTextures(1, &fboSSAO);
+    gl->glGenTextures(1, &fboSSAO);
+    gl->glBindTexture(GL_TEXTURE_2D, fboSSAO);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, w, h, 0, GL_RED, GL_FLOAT, nullptr);
+
+
+    ssaoBO->bind();
+    ssaoBO->addColorAttachment(0, fboSSAO);
+    ssaoBO->addDepthAttachment(fboDepth);
+    ssaoBO->checkStatus();
+    ssaoBO->release();
+
+    blurSSAO->bind();
+    blurSSAO->addColorAttachment(0, fboSSAO);
+    blurSSAO->addColorAttachment(1, stepFBlur);
+    blurSSAO->addDepthAttachment(fboDepth);
+    blurSSAO->checkStatus();
+    blurSSAO->release();
+}
+
 void DeferredRenderer::resize(int w, int h)
 {
     OpenGLErrorGuard guard("DeferredRenderer::GenerateBuffers()");
@@ -450,6 +526,7 @@ void DeferredRenderer::resize(int w, int h)
     blurDebugPrep(w,h);
 
     dofPrep(w, h);
+    ssaoPrep(w,h);
     // Debug Preps
 
 }
@@ -486,6 +563,14 @@ void DeferredRenderer::CleanFirstBuffers()
     dofBlurBO->bind();
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     dofBlurBO->release();
+
+    ssaoBO->bind();
+    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    ssaoBO->release();
+
+    blurSSAO->bind();
+    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    blurSSAO->release();
 }
 
 void DeferredRenderer::render(Camera *camera)
@@ -497,8 +582,10 @@ void DeferredRenderer::render(Camera *camera)
     // Passes
     passMeshes(camera);
 
-    if(shownTexture() == "Final Render" || shownTexture() == "DOF Mask")
+    if(shownTexture() == "Final Render" || shownTexture() == "DOF Mask" || shownTexture() == "SSAO Debug")
     {
+
+        PassSSAO(camera);
         passLighting(camera);
         PassDOF(camera);
 
@@ -511,6 +598,138 @@ void DeferredRenderer::render(Camera *camera)
     }
 
     passBlit();
+}
+
+void DeferredRenderer::PassSSAO(Camera* camera)
+{
+
+    if(!miscSettings->checkSSAO) return;
+
+    OpenGLErrorGuard guard("DeferredRenderer::PassSSAO()");
+    ssaoState.apply();
+
+    ssaoBO->bind();
+
+    gl->glClear(GL_COLOR_BUFFER_BIT);
+
+    QOpenGLShaderProgram &program = ssaoProgram->program;
+    if(program.bind())
+    {
+        program.setUniformValue("depth", 0);
+        gl->glActiveTexture(GL_TEXTURE0);
+        gl->glBindTexture(GL_TEXTURE_2D, fboDepth);
+
+        program.setUniformValue("normal", 1);
+        gl->glActiveTexture(GL_TEXTURE1);
+        gl->glBindTexture(GL_TEXTURE_2D, gboNormal);
+
+        program.setUniformValue("projection", camera->projectionMatrix);
+
+        std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // random floats between [0.0, 1.0]
+        std::default_random_engine generator;
+        std::vector<QVector3D> ssaoKernel;
+        for (unsigned int i = 0; i < 64; ++i)
+        {
+            QVector3D sample(
+                randomFloats(generator) * 2.0 - 1.0,
+                randomFloats(generator) * 2.0 - 1.0,
+                randomFloats(generator)
+            );
+            sample  = sample.normalized();
+            sample *= randomFloats(generator);
+
+            float scale = (float)i / 64.0;
+            float f = scale*scale;
+            // Lerp the scale to be closer to fragment
+            scale = (.1 + f *(1. -.1));
+            sample *= scale;
+
+            ssaoKernel.push_back(sample);
+        }
+
+        program.setUniformValueArray("kernel", &ssaoKernel[0], ssaoKernel.size());
+
+        std::vector<QVector3D> ssaoNoise;
+        for (unsigned int i = 0; i < 16; i++)
+        {
+            QVector3D noise(
+                randomFloats(generator) * 2.0 - 1.0,
+                randomFloats(generator) * 2.0 - 1.0,
+                0.0f);
+            ssaoNoise.push_back(noise);
+        }
+
+        program.setUniformValueArray("noise", &ssaoNoise[0], ssaoNoise.size());
+
+        program.setUniformValue("camParams", camera->getLeftRightBottomTop());
+        program.setUniformValue("z", camera->znear, camera->zfar);
+
+        // Allow substitution of the aoRad through miscSettings
+        program.setUniformValue("aoRad", miscSettings->aoRadius);
+
+        resourceManager->quad->submeshes[0]->draw();
+
+
+    }
+
+    ssaoBO->release();
+
+    PassBlurMask(blurSSAO,fboSSAO);
+}
+
+void DeferredRenderer::PassBlurMask(FramebufferObject *fb, GLuint Read, GLuint Mask)
+{
+    if(fb == nullptr) return;
+
+    Mask = (Mask == UINT_MAX) ? resourceManager->texWhite->textureId() : Mask;
+
+    OpenGLErrorGuard guard("DeferredRenderer::PassBlur()");
+
+    mainState.apply();
+
+    fb->bind();
+    QOpenGLShaderProgram &program = blurMaskProgram->program;
+    if(program.bind())
+    {
+        // Prepare uniforms, we will bind textures later
+        program.setUniformValue("colorMap", 0);
+        program.setUniformValue("Mask", 1);
+        program.setUniformValue("depth", 2);
+        program.setUniformValue("ratio", miscSettings->blurVal);
+
+        // Pass 1 - Write to 1st Step of Blur (Vertical or Horizontal, does not matter)
+
+        QVector2D dir(0.,1.);
+        gl->glDrawBuffer(GL_COLOR_ATTACHMENT1);
+        program.setUniformValue("dir", dir.x(), dir.y());
+
+        gl->glActiveTexture(GL_TEXTURE0);
+        gl->glBindTexture(GL_TEXTURE_2D, Read);
+
+        gl->glActiveTexture(GL_TEXTURE1);
+        gl->glBindTexture(GL_TEXTURE_2D, Mask);
+
+        resourceManager->quad->submeshes[0]->draw();
+
+        // Pass 2 - Write to Expected (Attachment 0) and Read from the previous write
+        // Also, direction should be transpose of the last one
+
+        gl->glDrawBuffer(GL_COLOR_ATTACHMENT0);
+        program.setUniformValue("dir", dir.y(), dir.x());
+
+        gl->glActiveTexture(GL_TEXTURE0);
+        gl->glBindTexture(GL_TEXTURE_2D, stepFBlur);
+
+        gl->glActiveTexture(GL_TEXTURE1);
+        gl->glBindTexture(GL_TEXTURE_2D, Mask);
+
+        resourceManager->quad->submeshes[0]->draw();
+
+
+
+
+    }
+    fb->release();
 }
 
 void DeferredRenderer::PassDOF(Camera *camera)
@@ -600,9 +819,6 @@ void DeferredRenderer::PassBlur(FramebufferObject* fb, GLuint Read, GLuint Depth
         gl->glBindTexture(GL_TEXTURE_2D, Mask);
 
         resourceManager->quad->submeshes[0]->draw();
-
-
-
 
     }
     fb->release();
@@ -875,6 +1091,10 @@ void DeferredRenderer::passLighting(Camera* camera)
         gl->glActiveTexture(GL_TEXTURE2);
         gl->glBindTexture(GL_TEXTURE_2D, gboAlbedoSpec);
 
+        program.setUniformValue("SSAO", 3);
+        gl->glActiveTexture(GL_TEXTURE3);
+        gl->glBindTexture(GL_TEXTURE_2D, fboSSAO);
+
         program.setUniformValue("ViewPort", camera->viewportWidth, camera->viewportHeight);
         program.setUniformValue("camPos", camera->position);
         program.setUniformValue("AMBIENT", miscSettings->AMBIENT);
@@ -957,6 +1177,9 @@ void DeferredRenderer::passBlit()
         else if(shownTexture() == "DOF Mask") {
             gl->glBindTexture(GL_TEXTURE_2D, dofMask);
         }
+        else if(shownTexture() == "SSAO Debug") {
+            gl->glBindTexture(GL_TEXTURE_2D, fboSSAO);
+        }
         else if(shownTexture() == "Editor"){
             gl->glBindTexture(GL_TEXTURE_2D, fboEditor);
         }
@@ -970,7 +1193,6 @@ void DeferredRenderer::passBlit()
         }
         else if(shownTexture() == "Position"){
             gl->glBindTexture(GL_TEXTURE_2D, gboPosition);
-
         }
         else if(shownTexture() == "Normals"){
             gl->glBindTexture(GL_TEXTURE_2D, gboNormal);

@@ -12,6 +12,9 @@ uniform float AMBIENT;
 uniform sampler2D gboPosition;
 uniform sampler2D gboNormal;
 uniform sampler2D gboAlbedoSpec;
+
+uniform sampler2D SSAO;
+
 uniform vec2 ViewPort;
 uniform vec3 camPos;
 out vec4 outColor;
@@ -35,7 +38,7 @@ void main(void)
     // Diffuse - Lambertian
     // Specular - Fresnel, the more parallel the viewer is to a surface, more reflective it becomes
 
-    vec3 finalCol = vec3(albedoSpec.rgb * AMBIENT);
+    vec3 finalCol = vec3(albedoSpec.rgb * AMBIENT * texture2D(SSAO, texCoord).r);
     vec3 dlCol = vec3(0.);
     vec3 ldir = lightDirection;
     if(lightType == 0)
@@ -47,14 +50,14 @@ void main(void)
     dlCol.rgb += albedoSpec.rgb * k_d * lightColor.rgb;
 
     // We need to pass camera position or direction to get specular ffs
-    // Blin = Halfway direction between CameraVector and Light Direction
-    vec3 BlinVec = normalize(camVec + ldir);
+    // Blin = Halfway direction between CameraVectorS and Light Direction
+    vec3 BlinVec =  normalize(camVec + ldir);// / (length(camVec+ldir));
     // Shininess factor needs to be passed from Material, not just an arbitrary value.
-    float k_s = pow(max(dot(N, BlinVec), 0.), 2.);
+    float k_s = pow(max(dot(BlinVec, N), 0.), 16.);
 
     // Phong = Get ldir that reflects off of Normal of the Point
     vec3 PhongVec = normalize(reflect(ldir, N));
-    //k_s = pow(max(dot(camVec, PhongVec), 0.), 16.);
+    k_s = pow(max(dot(camVec, PhongVec), 0.), 16.);
 
     // Techincally we put albedoSpec val, but we don't pass it
     // So I put 1 instead to get some specular

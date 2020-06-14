@@ -78,6 +78,38 @@ void MiscSettings::read(QJsonObject &json)
         {
             this->renderLightSources = j.value().toBool();
         }
+        else if (key == "SSAO")
+        {
+            this->checkSSAO = j.value().toBool();
+        }
+        else if(key == "ssaoRad")
+        {
+            this->aoRadius = j.value().toBool();
+        }
+        else if(key == "bgColR")
+        {
+            this->backgroundColor.setRedF(j.value().toDouble());
+        }
+        else if(key == "bgColG")
+        {
+            this->backgroundColor.setBlueF(j.value().toDouble());
+        }
+        else if(key == "bgColB")
+        {
+            this->backgroundColor.setGreenF(j.value().toDouble());
+        }
+        else if(key == "gColR")
+        {
+            this->gridColor.setRedF(j.value().toDouble());
+        }
+        else if(key == "gColG")
+        {
+            this->gridColor.setGreenF(j.value().toDouble());
+        }
+        else if(key == "gColB")
+        {
+            this->gridColor.setBlueF(j.value().toDouble());
+        }
     }
 
 
@@ -112,5 +144,16 @@ void MiscSettings::write(QJsonObject &json)
     //Editor visual hints
     json["renderGrid"] = this->renderGrid;
     json["lightSources"] = this->renderLightSources;
+    json["bgColR"] = this->backgroundColor.redF();
+    json["bgColG"] = this->backgroundColor.blueF();
+    json["bgColB"] = this->backgroundColor.greenF();
+    json["gColR"] = this->gridColor.redF();
+    json["gColG"] = this->gridColor.blueF();
+    json["gColB"] = this->gridColor.greenF();
+
+
+    //SSAO
+    json["SSAO"] = this->checkSSAO;
+    json["ssaoRad"] = this->aoRadius;
 
 }

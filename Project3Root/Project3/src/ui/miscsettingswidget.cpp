@@ -33,6 +33,8 @@ MiscSettingsWidget::MiscSettingsWidget(QWidget *parent) :
     connect(ui->depthSpin, SIGNAL(valueChanged(double)), this, SLOT(onDOFDepthChanged(double)));
     connect(ui->falloffSpin, SIGNAL(valueChanged(double)), this, SLOT(onDOFFalloffChanged(double)));
 
+    connect(ui->checkSSAO, SIGNAL(clicked()), this, SLOT(onVisualHintChanged()));
+    connect(ui->aoRadSpin, SIGNAL(valueChanged(double)), this, SLOT(onSSAORadChanged(double)));
     connect(selection, SIGNAL(updateMiscSettings()), this, SLOT(updateSettings()));
 
 }
@@ -147,6 +149,8 @@ void MiscSettingsWidget::onVisualHintChanged()
 
     miscSettings->checkDOF = ui->globalDOF->isChecked();
 
+    miscSettings->checkSSAO = ui->checkSSAO->isChecked();
+
     emit settingsChanged();
 }
 
@@ -177,5 +181,12 @@ void MiscSettingsWidget::onDOFDepthChanged(double val)
 void MiscSettingsWidget::onDOFFalloffChanged(double val)
 {
     miscSettings->dofFalloff = val;
+    emit settingsChanged();
+}
+
+void MiscSettingsWidget::onSSAORadChanged(double val)
+{
+    miscSettings->aoRadius = val;
+
     emit settingsChanged();
 }

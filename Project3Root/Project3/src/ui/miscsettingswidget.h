@@ -39,6 +39,8 @@ public slots:
     void onDOFDepthChanged(double);
     void onDOFFalloffChanged(double);
 
+    void onSSAORadChanged(double);
+
 private:
     Ui::MiscSettingsWidget *ui;
 };

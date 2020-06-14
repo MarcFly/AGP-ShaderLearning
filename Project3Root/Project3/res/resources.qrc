@@ -27,5 +27,7 @@
         <file>shaders/grid-background/bggrid.frag</file>
         <file>shaders/blur/gaussian.frag</file>
         <file>shaders/dof/dof.frag</file>
+        <file>shaders/ao/ssao.frag</file>
+        <file>shaders/blur/gMask.frag</file>
     </qresource>
 </RCC>
