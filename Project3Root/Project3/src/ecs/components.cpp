@@ -82,6 +82,7 @@ void MeshRenderer::handleResourcesAboutToDie()
 void MeshRenderer::read(const QJsonObject &json)
 {
 
+
 }
 
 void MeshRenderer::write(QJsonObject &json)

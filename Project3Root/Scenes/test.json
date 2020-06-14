@@ -1,19 +1,39 @@
 {
+    "0": {
+        "MeshRenderer": "Plane",
+        "TransformComponent": {
+            "PosRotScale": "0,0,0,0,0,0,1,1,1,"
+        },
+        "isActive": true,
+        "name": "Plane",
+        "position": 0
+    },
+    "1": {
+        "MeshRenderer": {
+            "MeshFilePath": "D:/Documents/GitHub/AGP-ShaderLearning/Project3Root/Project3/res/models/Patrick/Patrick.obj"
+        },
+        "TransformComponent": {
+            "PosRotScale": "0,0,0,0,0,0,1,1,1,"
+        },
+        "isActive": true,
+        "name": "Patrick",
+        "position": 1
+    },
     "MiscSettings": {
-        "DOF": false,
-        "DOFFall": 0.30000001192092896,
-        "DOFFocusDepth": 1,
-        "DOFFocusDistance": 7,
-        "Outlinealpha": 0.800000011920929,
-        "Outlinewidth": 1.2000000476837158,
-        "ambient": 0.3499999940395355,
-        "backgroundColorB": 255,
-        "backgroundColorG": 255,
-        "backgroundColorR": 255,
+        "DOF": true,
+        "DOFFall": 0.5,
+        "DOFFocusDepth": 2,
+        "DOFFocusDistance": 5,
+        "Outlinealpha": 1,
+        "Outlinewidth": 1,
+        "ambient": 0.5,
+        "backgroundColorB": 40,
+        "backgroundColorG": 40,
+        "backgroundColorR": 40,
         "blurType": 0,
-        "blurVal": 0.550000011920929,
-        "lightSources": false,
-        "renderGrid": false,
-        "renderOutline": false
+        "blurVal": 1,
+        "lightSources": true,
+        "renderGrid": true,
+        "renderOutline": true
     }
 }

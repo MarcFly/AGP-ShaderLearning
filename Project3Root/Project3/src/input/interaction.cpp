@@ -156,8 +156,7 @@ void Interaction::passMeshes()
             {
                 QMatrix4x4 worldMatrix = lightSource->entity->transform->matrix();
                 QMatrix4x4 scaleMatrix; scaleMatrix.scale(0.1f, 0.1f, 0.1f);
-                QMatrix4x4 worldViewMatrix = camera->viewMatrix * worldMatrix * scaleMatrix;
-                QMatrix3x3 normalMatrix = worldViewMatrix.normalMatrix();                
+                QMatrix4x4 worldViewMatrix = camera->viewMatrix * worldMatrix * scaleMatrix;                
                 program.setUniformValue("worldViewMatrix", worldViewMatrix);                
                 program.setUniformValue("SelectionCode", lightSource->entity->color);
 
@@ -174,9 +173,15 @@ void Interaction::passMeshes()
 bool Interaction::mousePicking()
 {
     OpenGLErrorGuard guard("MousePicking::render()");
+    //clear selection before testing mouse picking
     selection->clear();
+
+    //clearing entity previously detected by mousepicking
     selectedEntity = nullptr;
+
+    //Opening mousepicking frame buffer
     frameBuffer->bind();
+
     // Enable Blending of Buffers
     gl->glDisable(GL_BLEND);
 
@@ -184,7 +189,10 @@ bool Interaction::mousePicking()
     gl->glDisable(GL_CULL_FACE);
     gl->glEnable(GL_DEPTH_TEST);
 
+    // Clearing buffer
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    //Mesh pass
     passMeshes();
     GLfloat* pixel = (GLfloat*)malloc(sizeof(GLfloat)*3);
     glReadPixels(input->mousex, camera->viewportHeight - input->mousey, 1, 1, GL_RGB, GL_FLOAT, pixel);
@@ -207,8 +215,7 @@ bool Interaction::mousePicking()
 }
 
 bool Interaction::navigate()
-{
-    static float v = 0.0f; // Instant speed
+{    
     static const float a = 5.0f; // Constant acceleration
     static const float t = 1.0/60.0f; // Delta time
 
