@@ -51,7 +51,7 @@ void main(void)
     {
         vec3 hit = camPosWorldSpace + camDirWorldSpace * abs(t);
         vec4 hitClip = projectionMatrix * viewMatrix * vec4(hit , 1.);
-        float g = grid(hit,100.)*.3 + grid(hit, 10.)*.3 + grid(hit, 1.)*.3;
+        float g = grid(hit,100.)*.4 + grid(hit, 10.)*.3 + grid(hit, 1.)*.3;
         g = clamp(g, 0., 1.);
 
         float ndcDepth = hitClip.z / hitClip.w;
