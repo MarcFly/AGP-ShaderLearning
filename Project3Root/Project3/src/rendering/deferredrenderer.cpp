@@ -438,7 +438,7 @@ void DeferredRenderer::dofPrep(int w, int h)
 
 void DeferredRenderer::resize(int w, int h)
 {
-    OpenGLErrorGuard guard("DeferredRenderer::resize()");
+    OpenGLErrorGuard guard("DeferredRenderer::GenerateBuffers()");
 
     fboPrep(w,h);
     gboPrep(w,h);
