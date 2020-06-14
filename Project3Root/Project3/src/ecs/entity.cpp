@@ -162,9 +162,20 @@ void Entity::read(const QJsonObject &json)
                  QString type = j.value().toString();
                  if (type == "Plane")
                  {
-                     this->name = "Plane";
                      this->addComponent(ComponentType::MeshRenderer);
                      this->meshRenderer->mesh = resourceManager->plane;
+
+                 }
+                 else if (type == "Sphere")
+                 {
+                     this->addComponent(ComponentType::MeshRenderer);
+                     this->meshRenderer->mesh = resourceManager->sphere;
+
+                 }
+                 else if (type == "Cube")
+                 {
+                     this->addComponent(ComponentType::MeshRenderer);
+                     this->meshRenderer->mesh = resourceManager->cube;
                  }
 
             }

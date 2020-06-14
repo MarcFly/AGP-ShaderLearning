@@ -73,11 +73,95 @@ void Camera::lookAt(const QVector3D v)
 
     QVector3D tmp = QVector3D(0,1,0);
     QVector3D right = QVector3D::crossProduct(tmp,forward);
+    QVector3D up = QVector3D::crossProduct(forward,right);
 
+    this->yaw += 0.48;
+    prepareMatrices();
+
+   //    Vec3f forward = normalize(from - to);
+   //    Vec3f right = crossProduct(normalize(tmp), forward);
+   //    Vec3f up = crossProduct(forward, right);
+   //
+   //    Matrix44f camToWorld;
+   //
+   //    camToWorld[0][0] = right.x;
+   //    camToWorld[0][1] = right.y;
+   //    camToWorld[0][2] = right.z;
+   //    camToWorld[1][0] = up.x;
+   //    camToWorld[1][1] = up.y;
+   //    camToWorld[1][2] = up.z;
+   //    camToWorld[2][0] = forward.x;
+   //    camToWorld[2][1] = forward.y;
+   //    camToWorld[2][2] = forward.z;
+   //
+   //    camToWorld[3][0] = from.x;
+   //    camToWorld[3][1] = from.y;
+   //    camToWorld[3][2] = from.z;
+   //
+   //    return camToWorld;
+
+}
+
+void Camera::read(QJsonObject &json)
+{    
+
+    for (QJsonObject::const_iterator j = json.begin(); j != json.end(); j++)
+    {
+        QString key = j.key();
+        if (key == "cameraData")
+        {
+            QString dataCam = j.value().toString();
+            float arrData[16];
+            for (int i = 0; i < 16; i++)
+            {
+                arrData[i] = dataCam.split(",")[i].toFloat();
+            }
+
+            QMatrix4x4 savedWorldMatrix = QMatrix4x4(
+                        arrData[0],arrData[4],arrData[8],arrData[3],
+                        arrData[1],arrData[5],arrData[9],arrData[7],
+                        arrData[2],arrData[6],arrData[10],arrData[11],
+                        arrData[12],arrData[13],arrData[14],arrData[15]);
+            worldMatrix = savedWorldMatrix;
+            worldMatrix.setToIdentity();
+            //this->position.setX(arrData[3]);
+            //this->position.setY(arrData[7]);
+            //this->position.setZ(arrData[11]);
+        }
+        else if (key == "cameraYaw")
+        {
+            //this->yaw = j.value().toDouble();
+        }
+        else if (key == "cameraPitch")
+        {
+            //this->pitch = j.value().toDouble();
+        }
+    }
+
+
+    this->prepareMatrices();
+
+}
+
+void Camera::write(QJsonObject &json)
+{
+    float* values = new float(16);
+    this->worldMatrix.copyDataTo(values);
+    QString valuesStr;
+    for (int i = 0; i < 16; i++)
+    {
+        valuesStr.append(QString::number(values[i]));
+        valuesStr.append(",");
+    }
+
+    json["cameraData"] = valuesStr;
+    json["cameraYaw"] = this->yaw;
+    json["cameraPitch"] = this->pitch;
 }
 
 void Camera::updateOrbitalCam()
 {
+    isOrbital = input->keys[Qt::Key_Space] == KeyState::Pressed;
     if (isOrbital)
     {
         //Setting up orbital camera
@@ -107,7 +191,7 @@ void Camera::prepareMatrices()
     worldMatrix.setToIdentity();
     worldMatrix.translate(position);
     worldMatrix.rotate(yaw, QVector3D(0.0, 1.0, 0.0));
-    worldMatrix.rotate(pitch, QVector3D(1.0, 0.0, 0.0));
+    worldMatrix.rotate(pitch, QVector3D(1.0, 0.0, 0.0));    
 
     viewMatrix = worldMatrix.inverted();
 

@@ -36,7 +36,7 @@ public:
     bool checkSSAO = false;
     float aoRadius = .5;
 
-    void read(const QJsonObject &json);
+    void read(QJsonObject &json);
     void write(QJsonObject &json);
 
 };

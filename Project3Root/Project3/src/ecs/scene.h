@@ -28,7 +28,7 @@ public:
 
     void handleResourcesAboutToDie();
 
-    // TODO JOSEP: CLEAN SCENE BEFORE ADDING OBJECT TO SCENE
+
     void read(const QJsonObject &json);
     void write(QJsonObject &json);
 

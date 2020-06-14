@@ -56,6 +56,9 @@ public slots:
     void updateEverything();
     void reloadShaderPrograms();
     void onRenderOutputChanged(QString);
+    void openScene1();
+    void openScene2();
+    void openScene3();
 
 private:
 

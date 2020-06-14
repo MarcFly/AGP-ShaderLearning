@@ -107,6 +107,11 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(uiMainWindow->actionAddTexture, SIGNAL(triggered()), this, SLOT(addTexture()));
     connect(uiMainWindow->actionAddMaterial, SIGNAL(triggered()), this, SLOT(addMaterial()));
     connect(uiMainWindow->actionReloadShaderPrograms, SIGNAL(triggered()), this, SLOT(reloadShaderPrograms()));
+    connect(uiMainWindow->actionScene_1,SIGNAL(triggered()),this,SLOT(openScene1()));
+    connect(uiMainWindow->actionScene_2,SIGNAL(triggered()),this,SLOT(openScene2()));
+    connect(uiMainWindow->actionScene_3,SIGNAL(triggered()),this,SLOT(openScene3()));
+
+
     connect(comboRenderer, SIGNAL(currentIndexChanged(QString)), this, SLOT(onRenderOutputChanged(QString)));
 
     connect(hierarchyWidget, SIGNAL(entityAdded(Entity *)), this, SLOT(onEntityAdded(Entity *)));
@@ -473,4 +478,82 @@ void MainWindow::onRenderOutputChanged(QString name)
     openGLWidget->showTextureWithName(name);
     openGLWidget->update();
     openGLWidget->forceResize();
+}
+
+void MainWindow::openScene1()
+{
+    QString path = QDir::currentPath();
+    QString chopStr = "Project3";
+    path.chop(chopStr.length());
+    path.append("Scenes/Samples/sample1.json");
+    if (!path.isEmpty())
+    {
+        QFile openFile(path);
+
+        if (!openFile.open(QIODevice::ReadOnly)) {
+            qWarning("Couldn't open file.");
+            return;
+        }
+
+        QFileInfo fileInfo(path);
+        projectDirectory = fileInfo.absolutePath();
+
+        QJsonDocument openDoc = QJsonDocument::fromJson(openFile.readAll());
+        resourceManager->read(openDoc.object());
+        scene->read(openDoc.object());
+
+        updateEverything();
+    }
+}
+
+void MainWindow::openScene2()
+{
+    QString path = QDir::currentPath();
+    QString chopStr = "Project3";
+    path.chop(chopStr.length());
+    path.append("Scenes/Samples/sample2.json");
+    if (!path.isEmpty())
+    {
+        QFile openFile(path);
+
+        if (!openFile.open(QIODevice::ReadOnly)) {
+            qWarning("Couldn't open file.");
+            return;
+        }
+
+        QFileInfo fileInfo(path);
+        projectDirectory = fileInfo.absolutePath();
+
+        QJsonDocument openDoc = QJsonDocument::fromJson(openFile.readAll());
+        resourceManager->read(openDoc.object());
+        scene->read(openDoc.object());
+
+        updateEverything();
+    }
+}
+
+void MainWindow::openScene3()
+{
+    QString path = QDir::currentPath();
+    QString chopStr = "Project3";
+    path.chop(chopStr.length());
+    path.append("Scenes/Samples/sample3.json");
+    if (!path.isEmpty())
+    {
+        QFile openFile(path);
+
+        if (!openFile.open(QIODevice::ReadOnly)) {
+            qWarning("Couldn't open file.");
+            return;
+        }
+
+        QFileInfo fileInfo(path);
+        projectDirectory = fileInfo.absolutePath();
+
+        QJsonDocument openDoc = QJsonDocument::fromJson(openFile.readAll());
+        resourceManager->read(openDoc.object());
+        scene->read(openDoc.object());
+
+        updateEverything();
+    }
 }

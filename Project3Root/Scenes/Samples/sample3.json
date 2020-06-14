@@ -17,26 +17,6 @@
         "name": "Cube",
         "position": 1
     },
-    "2": {
-        "MeshRenderer": "Sphere",
-        "TransformComponent": {
-            "PosRotScale": "0,0,0,0,0,0,1,1,1,"
-        },
-        "isActive": true,
-        "name": "Sphere",
-        "position": 2
-    },
-    "3": {
-        "MeshRenderer": {
-            "MeshFilePath": "D:/Documents/GitHub/AGP-ShaderLearning/Project3Root/Project3/res/models/Patrick/Patrick.obj"
-        },
-        "TransformComponent": {
-            "PosRotScale": "0,0,0,0,0,0,1,1,1,"
-        },
-        "isActive": true,
-        "name": "Patrick",
-        "position": 3
-    },
     "MiscSettings": {
         "DOF": false,
         "DOFFall": 2,
