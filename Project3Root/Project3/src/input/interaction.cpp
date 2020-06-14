@@ -24,7 +24,7 @@ void Interaction::init()
     // Mouse Picking State
     mpState.depthTest = true;
     mpState.depthFunc = GL_LEQUAL;
-    mpState.depthWrite = false;
+    mpState.depthWrite = true;
     mpState.faceCulling = true;
     mpState.faceCullingMode = GL_BACK;
     mpState.blending = true;         // No blend
@@ -168,8 +168,7 @@ void Interaction::passMeshes()
             {
                 QMatrix4x4 worldMatrix = lightSource->entity->transform->matrix();
                 QMatrix4x4 scaleMatrix; scaleMatrix.scale(0.1f, 0.1f, 0.1f);
-                QMatrix4x4 worldViewMatrix = camera->viewMatrix * worldMatrix * scaleMatrix;
-                QMatrix3x3 normalMatrix = worldViewMatrix.normalMatrix();                
+                QMatrix4x4 worldViewMatrix = camera->viewMatrix * worldMatrix * scaleMatrix;                
                 program.setUniformValue("worldViewMatrix", worldViewMatrix);                
                 program.setUniformValue("SelectionCode", lightSource->entity->color);
 
@@ -183,18 +182,25 @@ void Interaction::passMeshes()
         program.release();
     }
 }
-bool Interaction::mousePicking()
+bool Interaction::mousePicking(Camera* camera)
 {
     OpenGLErrorGuard guard("MousePicking::render()");
     selection->clear();
     selectedEntity = nullptr;
     frameBuffer->bind();
 
-    // Apply previously
+    // Clear currently written buffer
+    gl->glClearColor(0.,0.,0.,0.);
+    gl->glClearDepth(1.);
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // Apply Mouse Picking GL State
     mpState.apply();
 
+    // Generate the color Code Texture
     passMeshes();
+
+    // Text the pixel against teh expected colors
     GLfloat* pixel = (GLfloat*)malloc(sizeof(GLfloat)*3);
     glReadPixels(input->mousex, camera->viewportHeight - input->mousey, 1, 1, GL_RGB, GL_FLOAT, pixel);
 
@@ -202,9 +208,9 @@ bool Interaction::mousePicking()
 
     for (int i = 0; i<scene->entities.length();i++)
     {
-        if (scene->entities[i]->color.x() == pixel[0] &&
-                scene->entities[i]->color.y() == pixel[1] &&
-                scene->entities[i]->color.z() == pixel[2])
+        if (std::abs(scene->entities[i]->color.x() - pixel[0]) < .01f &&
+                std::abs(scene->entities[i]->color.y() - pixel[1]) < .01f &&
+                std::abs(scene->entities[i]->color.z() - pixel[2]) < .01f)
         {
             selection->onEntitySelectedFromSceneView(scene->entities[i]);
             selectedEntity = scene->entities[i];

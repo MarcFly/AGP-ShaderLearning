@@ -6,6 +6,7 @@
 
 class FramebufferObject;
 class ShaderProgram;
+class Camera;
 
 class Interaction
 {
@@ -19,7 +20,7 @@ public:
 
     void generateBuffers(int width, int height);
 
-    bool mousePicking();
+    bool mousePicking(Camera* camera);
 
     GLuint renderTexture;
     bool render = false;

@@ -115,7 +115,7 @@ void OpenGLWidget::paintGL()
 
     if (interaction->render)
     {
-        interaction->mousePicking();
+        interaction->mousePicking(camera);
     }
 
     renderer->render(camera);

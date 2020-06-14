@@ -528,8 +528,8 @@ void DeferredRenderer::PassDOF(Camera *camera)
 
     if(program.bind())
     {
-        program.setUniformValue("fDist", miscSettings->dofFocus);
-        program.setUniformValue("fDepth", miscSettings->dofDepth);
+        program.setUniformValue("fDist", miscSettings->dofFocusDistance);
+        program.setUniformValue("fDepth", miscSettings->dofFocusDepth);
         program.setUniformValue("fFalloff", miscSettings->dofFalloff);
 
         program.setUniformValue("z", camera->znear, camera->zfar);
@@ -902,7 +902,7 @@ void DeferredRenderer::passLighting(Camera* camera)
                     QMatrix4x4 worldMatrix = entity->transform->matrix();
 
                     QMatrix4x4 scaleMatrix;
-                    float rScale = light->range;
+                    float rScale = light->range*2.;
                     scaleMatrix.scale(rScale,rScale,rScale);
                     QMatrix4x4 worldViewMatrix = camera->viewMatrix * worldMatrix * scaleMatrix;
 
