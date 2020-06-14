@@ -187,8 +187,13 @@ void Interaction::passMeshes(Camera* camera)
 bool Interaction::mousePicking(Camera* camera)
 {
     OpenGLErrorGuard guard("MousePicking::render()");
+    //clear selection before testing mouse picking
     selection->clear();
+
+    //clearing entity previously detected by mousepicking
     selectedEntity = nullptr;
+
+    //Opening mousepicking frame buffer
     frameBuffer->bind();
 
     // Apply Mouse Picking GL State
@@ -219,8 +224,7 @@ bool Interaction::mousePicking(Camera* camera)
 }
 
 bool Interaction::navigate()
-{
-    static float v = 0.0f; // Instant speed
+{    
     static const float a = 5.0f; // Constant acceleration
     static const float t = 1.0/60.0f; // Delta time
 

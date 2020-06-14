@@ -150,11 +150,26 @@ void Entity::read(const QJsonObject &json)
             QJsonObject meshObject = j->toObject();            
 
             QString path = meshObject["MeshFilePath"].toString();
-            if (path.isEmpty()) return;
+            if (path.length() > 1)
+            {
+                ModelImporter importer;
+                Entity* ret = importer.import(path);
+                this->meshRenderer = ret->meshRenderer;
+            }
+            else
+            {
 
-            ModelImporter importer;
-            Entity* ret = importer.import(path);
-            this->meshRenderer = ret->meshRenderer;
+                 QString type = j.value().toString();
+                 if (type == "Plane")
+                 {
+                     this->name = "Plane";
+                     this->addComponent(ComponentType::MeshRenderer);
+                     this->meshRenderer->mesh = resourceManager->plane;
+                 }
+
+            }
+
+
         }
         else if (key == "name")
         {

@@ -1,5 +1,6 @@
 #include "mesh.h"
 #include "rendering/gl.h"
+#include "globals.h"
 #include <QVector2D>
 #include <QVector3D>
 #include <QFile>
@@ -202,11 +203,21 @@ void Mesh::read(const QJsonObject &json)
 {
 
 
+
 }
 
 void Mesh::write(QJsonObject &json)
 {
-    QJsonObject path;
-    path["MeshFilePath"] = this->getFilePath();
-    json.insert("MeshRenderer",path);
+    QString ret = this->getFilePath();
+    if (ret.size() > 1)
+    {
+        QJsonObject path;
+        path["MeshFilePath"] = this->getFilePath();
+        json.insert("MeshRenderer",path);
+    }
+    else
+    {
+        json.insert("MeshRenderer",this->asMesh()->name);
+    }
+
 }
