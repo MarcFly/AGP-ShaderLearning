@@ -2,6 +2,8 @@
 #define MISCSETTINGS_H
 
 #include <QColor>
+#include <QJsonObject>
+#include <QObject>
 
 class MiscSettings
 {
@@ -25,11 +27,13 @@ public:
     int blurType = 0; // 0 = Gaussian
 
     // DOF Controls
-    float dofFocus = 10.;
-    float dofDepth = 20.;
-    float dofFalloff = 4.;
+    float dofFocusDistance = 10.;
+    float dofFocusDepth = 5.;
+    float dofFalloff = 2.;
     bool checkDOF = true;
 
+    void read(const QJsonObject &json);
+    void write(QJsonObject &json);
 
 };
 

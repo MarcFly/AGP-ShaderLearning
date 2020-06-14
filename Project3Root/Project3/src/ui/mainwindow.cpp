@@ -120,8 +120,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(openGLWidget, SIGNAL(interacted()), this, SLOT(onEntityChangedInteractively()));
     connect(miscSettingsWidget, SIGNAL(settingsChanged()), this, SLOT(updateRender()));
 
-    connect(selection, SIGNAL(onClick(Entity*)), this, SLOT(onEntitySelectedFromSceneView(Entity*)));    
-
+    connect(selection, SIGNAL(onClick(Entity*)), this, SLOT(onEntitySelectedFromSceneView(Entity*)));
+    connect(selection, SIGNAL(updateOpenGLWidget()),this, SLOT(updateRender()));
 
     hierarchyWidget->updateLayout();
     resourcesWidget->updateLayout();
@@ -144,7 +144,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::openProject()
 {
-    QString path = QFileDialog::getOpenFileName(this,"Open project", QString(), QString::fromLatin1("Json files (*.json)"));
+    QString path = QFileDialog::getOpenFileName(this,"Open project", "../Scenes", QString::fromLatin1("Json files (*.json)"));
     if (!path.isEmpty())
     {
         QFile openFile(path);
@@ -167,7 +167,7 @@ void MainWindow::openProject()
 
 void MainWindow::saveProject()
 {
-    QString path = "D:/Documents/GitHub/AGP-ShaderLearning/Project3Root/Scenes/test.json";// QFileDialog::getSaveFileName(this, "Save project", QString(), QString::fromLatin1("Json files (*.json)"));
+    QString path = "D:/Documents/GitHub/AGP-ShaderLearning/Project3Root/Scenes/test.json";// QFileDialog::getSaveFileName(this, "Save project", "../Scenes", QString::fromLatin1("Json files (*.json)"));
     if (!path.isEmpty())
     {
         QFile saveFile(path);
@@ -265,7 +265,7 @@ void MainWindow::addDirectionalLight()
 
 void MainWindow::importModel()
 {
-    QString path = QFileDialog::getOpenFileName(this, "Choose a 3D model file.",QString(), "3D Models (*.obj *.fbx)");
+    QString path = QFileDialog::getOpenFileName(this, "Choose a 3D model file.","../Project3/res/models", "3D Models (*.obj *.fbx)");
     if (path.isEmpty()) return;
 
     ModelImporter importer;

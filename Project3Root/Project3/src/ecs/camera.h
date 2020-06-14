@@ -22,6 +22,9 @@ public:
     QVector3D screenPointToWorldRay(int x, int y);
     QVector3D screenDisplacementToWorldVector(int x0, int y0, int x1, int y1, const QVector3D &worldPoint);
     QVector2D worldToScreenPoint(const QVector3D &p);
+    void lookAt(const QVector3D v);
+
+    void updateOrbitalCam();
 
     // Create the matrices
     void prepareMatrices();
@@ -40,6 +43,7 @@ public:
     float yaw = 0.0f;
     float pitch = 0.0f;
     QVector3D position;
+    bool isOrbital = true;
 
     // Speed
     float speed = DEFAULT_CAMERA_SPEED;
@@ -48,6 +52,7 @@ public:
     QMatrix4x4 worldMatrix; // From camera space to world space
     QMatrix4x4 viewMatrix; // From world space to camera space
     QMatrix4x4 projectionMatrix; // From view space to clip space
+
 };
 
 #endif // CAMERA_H

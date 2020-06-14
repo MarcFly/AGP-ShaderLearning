@@ -32,11 +32,49 @@ MiscSettingsWidget::MiscSettingsWidget(QWidget *parent) :
     connect(ui->distSpin, SIGNAL(valueChanged(double)), this, SLOT(onDOFDistChanged(double)));
     connect(ui->depthSpin, SIGNAL(valueChanged(double)), this, SLOT(onDOFDepthChanged(double)));
     connect(ui->falloffSpin, SIGNAL(valueChanged(double)), this, SLOT(onDOFFalloffChanged(double)));
+
+    connect(selection, SIGNAL(updateMiscSettings()), this, SLOT(updateSettings()));
+
 }
 
 MiscSettingsWidget::~MiscSettingsWidget()
 {
     delete ui;
+}
+
+void MiscSettingsWidget::updateSettings()
+{
+    //camera
+    ui->spinCameraSpeed->setValue(camera->speed);
+    ui->spinFovY->setValue(camera->fovy);
+
+    //Enviroment
+    QColor color = miscSettings->backgroundColor;
+    if (color.isValid())
+    {
+        QString colorName = color.name();
+        ui->buttonBackgroundColor->setStyleSheet(QString::fromLatin1("background-color: %0").arg(colorName));
+    }
+    ui->spinAmbient->setValue(miscSettings->AMBIENT);
+
+    //Editor visual hints
+    ui->checkBoxLightSources->setChecked(miscSettings->renderLightSources);
+    ui->checkBoxGrid->setChecked(miscSettings->renderGrid);
+    //Blur
+    ui->blurIntensity->setValue(miscSettings->blurVal);
+
+    //Outline
+    ui->OutlineAlphaSpinBox->setValue(miscSettings->OutlineAlpha);
+    ui->OutlineWidthSpinBox->setValue(miscSettings->OutlineWidth);
+    ui->checkBoxSelectionOutline->setChecked(miscSettings->renderOutline);
+
+    //DOF
+    ui->globalDOF->setChecked(miscSettings->checkDOF);
+    ui->distSpin->setValue(miscSettings->dofFocusDistance);
+    ui->depthSpin->setValue(miscSettings->dofFocusDepth);
+    ui->falloffSpin->setValue(miscSettings->dofFalloff);
+
+    emit settingsChanged();
 }
 
 void MiscSettingsWidget::onCameraSpeedChanged(double speed)
@@ -126,13 +164,13 @@ void MiscSettingsWidget::onOutlineWidthChanged(double val)
 
 void MiscSettingsWidget::onDOFDistChanged(double val)
 {
-    miscSettings->dofFocus = val;
+    miscSettings->dofFocusDistance = val;
     emit settingsChanged();
 }
 
 void MiscSettingsWidget::onDOFDepthChanged(double val)
 {
-    miscSettings->dofDepth = val;
+    miscSettings->dofFocusDepth = val;
     emit settingsChanged();
 }
 

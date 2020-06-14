@@ -248,13 +248,20 @@ void OpenGLWidget::forceResize()
 void OpenGLWidget::frame()
 {
     static int framesSinceLastInteraction = 0;
-    bool didInteraction = interaction->update();
+    bool didInteraction = interaction->update();    
     if (didInteraction) { framesSinceLastInteraction = 0; }
     if (framesSinceLastInteraction < 5)
-    {
+    {        
         update();
     }
+
+    //Orbital Camera
+    camera->updateOrbitalCam();
+    selection->updateOpenGLWidget();
+
+
     framesSinceLastInteraction++;
     input->postUpdate();
     interaction->postUpdate();
+
 }

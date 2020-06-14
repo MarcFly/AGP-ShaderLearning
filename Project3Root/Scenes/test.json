@@ -1,12 +1,19 @@
 {
-    "0": {
-        "MeshRenderer": {
-            "MeshFilePath": "D:/Documents/GitHub/AGP-ShaderLearning/Project3Root/Project3/res/models/Patrick/Patrick.obj"
-        },
-        "TransformComponent": {
-            "PosRotScale": "2,4,6,0,0,0,1,1,1,"
-        },
-        "isActive": true,
-        "name": "Patrick"
+    "MiscSettings": {
+        "DOF": false,
+        "DOFFall": 0.30000001192092896,
+        "DOFFocusDepth": 1,
+        "DOFFocusDistance": 7,
+        "Outlinealpha": 0.800000011920929,
+        "Outlinewidth": 1.2000000476837158,
+        "ambient": 0.3499999940395355,
+        "backgroundColorB": 255,
+        "backgroundColorG": 255,
+        "backgroundColorR": 255,
+        "blurType": 0,
+        "blurVal": 0.550000011920929,
+        "lightSources": false,
+        "renderGrid": false,
+        "renderOutline": false
     }
 }
