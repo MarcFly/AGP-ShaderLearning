@@ -25,14 +25,11 @@ void Interaction::init()
     mpState.depthTest = true;
     mpState.depthFunc = GL_LEQUAL;
     mpState.depthWrite = true;
-    mpState.faceCulling = true;
+    mpState.faceCulling = false;
     mpState.faceCullingMode = GL_BACK;
-    mpState.blending = true;         // No blend
-    mpState.blendFuncSrc = GL_ONE;    // New Color wins
-    mpState.blendFuncDst = GL_ZERO;
-
-
-
+    mpState.blending = false;         // No blend
+    mpState.blendFuncSrc = GL_ONE;
+    mpState.blendFuncDst = GL_ONE;
 }
 
 bool Interaction::update()
@@ -86,7 +83,7 @@ bool Interaction::idle()
 void Interaction::generateBuffers(int width, int height)
 {
     OpenGLErrorGuard guard("GenerateBuffers::render()");
-    if (renderTexture >= 0)
+    if (renderTexture == 0)
     {
         gl->glDeleteTextures(1, &renderTexture);
     }
@@ -99,7 +96,7 @@ void Interaction::generateBuffers(int width, int height)
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, width, height, 0, GL_RGB, GL_FLOAT, nullptr);
 
-    if (depthTexture >= 0)
+    if (depthTexture == 0)
     {
         gl->glDeleteTextures(1, &depthTexture);
     }
@@ -120,9 +117,14 @@ void Interaction::generateBuffers(int width, int height)
     frameBuffer->release();
 }
 
-void Interaction::passMeshes()
+void Interaction::passMeshes(Camera* camera)
 {
     QOpenGLShaderProgram &program = mpProgram->program;
+
+    // Clear currently written buffer
+    gl->glClearColor(0.,0.,0.,0.);
+    gl->glClearDepth(1.);
+    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     if (program.bind())
     {        
@@ -189,18 +191,13 @@ bool Interaction::mousePicking(Camera* camera)
     selectedEntity = nullptr;
     frameBuffer->bind();
 
-    // Clear currently written buffer
-    gl->glClearColor(0.,0.,0.,0.);
-    gl->glClearDepth(1.);
-    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
     // Apply Mouse Picking GL State
     mpState.apply();
 
     // Generate the color Code Texture
-    passMeshes();
+    passMeshes(camera);
 
-    // Text the pixel against teh expected colors
+    // Text the pixel against the expected colors
     GLfloat* pixel = (GLfloat*)malloc(sizeof(GLfloat)*3);
     glReadPixels(input->mousex, camera->viewportHeight - input->mousey, 1, 1, GL_RGB, GL_FLOAT, pixel);
 

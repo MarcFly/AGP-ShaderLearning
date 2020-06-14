@@ -244,6 +244,9 @@ void OpenGLWidget::showTextureWithName(QString textureName)
 void OpenGLWidget::forceResize()
 {
     renderer->resize(camera->viewportWidth, camera->viewportHeight);
+
+    if(renderer->shownTexture() != "Mouse Picking")
+        interaction->generateBuffers(camera->viewportWidth, camera->viewportHeight);
 }
 void OpenGLWidget::frame()
 {
@@ -263,5 +266,4 @@ void OpenGLWidget::frame()
     framesSinceLastInteraction++;
     input->postUpdate();
     interaction->postUpdate();
-
 }

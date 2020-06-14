@@ -150,7 +150,7 @@ void MainWindow::openProject()
         QFile openFile(path);
 
         if (!openFile.open(QIODevice::ReadOnly)) {
-            qWarning("Couldn't open save file.");
+            qWarning("Couldn't open file.");
             return;
         }
 
@@ -167,13 +167,13 @@ void MainWindow::openProject()
 
 void MainWindow::saveProject()
 {
-    QString path = "D:/Documents/GitHub/AGP-ShaderLearning/Project3Root/Scenes/test.json";// QFileDialog::getSaveFileName(this, "Save project", "../Scenes", QString::fromLatin1("Json files (*.json)"));
+    QString path = QFileDialog::getSaveFileName(this, "Save project", "../Scenes", QString::fromLatin1("Json files (*.json)"));
     if (!path.isEmpty())
     {
         QFile saveFile(path);
 
         if (!saveFile.open(QIODevice::WriteOnly)) {
-            qWarning("Couldn't open save file.");
+            qWarning("Couldn't save file.");
             return;
         }
 

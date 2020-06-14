@@ -507,7 +507,7 @@ void DeferredRenderer::render(Camera *camera)
     {
         PassGridBackground(camera);
         PassOutline(camera);
-        PassBlur(blurDebugBO, fboEditor, fboOutlineMask);
+        PassBlur(blurDebugBO, fboEditor, fboEditorDepth, fboOutlineMask);
     }
 
     passBlit();
@@ -544,13 +544,13 @@ void DeferredRenderer::PassDOF(Camera *camera)
     dofMaskBO->release();
 
 
-    PassBlur(dofBlurBO, fboFinal, dofMask);
+    PassBlur(dofBlurBO, fboFinal, fboDepth, dofMask);
 
 
 
 }
 
-void DeferredRenderer::PassBlur(FramebufferObject* fb, GLuint Read, GLuint Mask)
+void DeferredRenderer::PassBlur(FramebufferObject* fb, GLuint Read, GLuint DepthRead, GLuint Mask)
 {
     if(fb == nullptr) return;
 
@@ -567,6 +567,7 @@ void DeferredRenderer::PassBlur(FramebufferObject* fb, GLuint Read, GLuint Mask)
         // Prepare uniforms, we will bind textures later
         program.setUniformValue("colorMap", 0);
         program.setUniformValue("Mask", 1);
+        program.setUniformValue("depth", 2);
         program.setUniformValue("ratio", miscSettings->blurVal);
 
         // Pass 1 - Write to 1st Step of Blur (Vertical or Horizontal, does not matter)
@@ -580,6 +581,9 @@ void DeferredRenderer::PassBlur(FramebufferObject* fb, GLuint Read, GLuint Mask)
 
         gl->glActiveTexture(GL_TEXTURE1);
         gl->glBindTexture(GL_TEXTURE_2D, Mask);
+
+        gl->glActiveTexture(GL_TEXTURE2);
+        gl->glBindTexture(GL_TEXTURE_2D, DepthRead);
 
         resourceManager->quad->submeshes[0]->draw();
 
@@ -934,6 +938,7 @@ void DeferredRenderer::passBlit()
 {
     QOpenGLShaderProgram &program = blitProgram->program;
     // We clear default buffer at blit because now we clear at every buffer bind
+    gl->glClearDepth(1.);
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     mainState.apply();

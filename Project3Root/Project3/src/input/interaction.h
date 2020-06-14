@@ -31,7 +31,7 @@ private:
     bool navigate();
     bool focus();
 
-    void passMeshes();
+    void passMeshes(Camera* camera);
 
     ShaderProgram* mpProgram = nullptr;
     FramebufferObject* frameBuffer = nullptr;

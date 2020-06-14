@@ -41,7 +41,7 @@ private:
     void PassGridBackground(Camera* camera);
     void PassOutline(Camera* camera);
 
-    void PassBlur(FramebufferObject* fb, GLuint Read, GLuint Mask = UINT_MAX);
+    void PassBlur(FramebufferObject* fb, GLuint Read, GLuint DepthRead, GLuint Mask = UINT_MAX);
 
     void PassDOF(Camera* camera);
     // Shaders

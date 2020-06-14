@@ -4,6 +4,7 @@ out vec4 outColor;
 
 uniform sampler2D colorMap;
 uniform sampler2D Mask;
+uniform sampler2D depth;
 
 uniform vec2 dir;
 uniform float ratio;
@@ -33,6 +34,11 @@ void main()
 
     vec3 baseCol = texture2D(colorMap, texCoord).rgb;
     float maskval = clamp(texture2D(Mask, texCoord).r, 0., 1.);
+    float dVal = clamp(texture2D(depth, texCoord).r, 0.,1.);
+
+    float f = 10000.0;
+    float n = 0.01;
+    dVal = abs((2 * f * n) / ((dVal * 2.0 - 1.0) *(f-n)-(f+n)))/50.;
 
     vec2 dir_corrected = normalize(dir) / viewP;
 
@@ -47,10 +53,17 @@ void main()
         // unmasked areas
 
         float maskn = clamp(texture2D(Mask, uv).r, 0.,1.);
+        float d2 = clamp(texture2D(depth, uv).r, 0.,1.);
+        d2 = abs((2 * f * n) / ((d2 * 2.0 - 1.0) *(f-n)-(f+n)))/50.;
+
+        float diff = clamp(ceil(d2 - dVal), 0.,1.);
+
+        float masktake = maskn*diff + 1.;
+        if(d2 > dVal) maskn = 1.;
 
         blurCol += texture2D(colorMap, uv).rgb * weights[j]*maskn;
         uv += dir_corrected;
-        sumweights += (weights[j]*maskn);
+        sumweights += (weights[j] * maskn);
     }
     blurCol /= sumweights;
 
