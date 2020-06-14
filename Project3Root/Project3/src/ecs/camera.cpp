@@ -161,7 +161,7 @@ void Camera::write(QJsonObject &json)
 
 void Camera::updateOrbitalCam()
 {
-    isOrbital = input->keys[Qt::Key_Space] == KeyState::Pressed;
+    //isOrbital = input->keys[Qt::Key_Space] == KeyState::Pressed;
     if (isOrbital)
     {
         //Setting up orbital camera
