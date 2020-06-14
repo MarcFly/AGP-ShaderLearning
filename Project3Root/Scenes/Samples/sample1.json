@@ -1,11 +1,13 @@
 {
     "0": {
-        "MeshRenderer": "Plane",
+        "MeshRenderer": {
+            "MeshFilePath": "Patrick/Patrick.obj"
+        },
         "TransformComponent": {
-            "PosRotScale": "0,0,0,0,0,0,1,1,1,"
+            "PosRotScale": "0,-7.8,0,0,0,0,1,1,1,"
         },
         "isActive": true,
-        "name": "Plane",
+        "name": "Patrick",
         "position": 0
     },
     "1": {
@@ -27,14 +29,12 @@
         "position": 2
     },
     "3": {
-        "MeshRenderer": {
-            "MeshFilePath": "D:/Documents/GitHub/AGP-ShaderLearning/Project3Root/Project3/res/models/Patrick/Patrick.obj"
-        },
+        "MeshRenderer": "Plane",
         "TransformComponent": {
             "PosRotScale": "0,0,0,0,0,0,1,1,1,"
         },
         "isActive": true,
-        "name": "Patrick",
+        "name": "Plane",
         "position": 3
     },
     "MiscSettings": {
@@ -49,7 +49,10 @@
         "backgroundColorG": 40,
         "backgroundColorR": 40,
         "blurType": 0,
-        "blurVal": 1,
+        "blurVal": 0.8999999761581421,
+        "cameraData": "1,0,0,0,0,1,0,2,0,0,1,6,0,0,0,1,",
+        "cameraPitch": 0,
+        "cameraYaw": 0,
         "lightSources": true,
         "renderGrid": true,
         "renderOutline": true

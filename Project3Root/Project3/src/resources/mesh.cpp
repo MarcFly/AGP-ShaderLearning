@@ -212,7 +212,16 @@ void Mesh::write(QJsonObject &json)
     if (ret.size() > 1)
     {
         QJsonObject path;
-        path["MeshFilePath"] = this->getFilePath();
+        QString pathStr = this->getFilePath();
+
+        QStringList pathList = pathStr.split("/");
+        int lastIndex = pathList.length();
+        QString finalPath;
+        finalPath.append(pathList[lastIndex-2]);
+        finalPath.append("/");
+        finalPath.append(pathList[lastIndex-1]);
+
+        path["MeshFilePath"] = finalPath;
         json.insert("MeshRenderer",path);
     }
     else

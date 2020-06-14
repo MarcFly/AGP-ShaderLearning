@@ -1,6 +1,7 @@
 #include "entity.h"
 #include "globals.h"
 #include "util/modelimporter.h"
+#include <QDir>
 
 Entity::Entity() :
     name("Entity")
@@ -153,7 +154,10 @@ void Entity::read(const QJsonObject &json)
             if (path.length() > 1)
             {
                 ModelImporter importer;
-                Entity* ret = importer.import(path);
+                QString finalPath = QDir::currentPath();
+                finalPath.append("/res/models/");
+                finalPath.append(path);
+                Entity* ret = importer.import(finalPath);
                 this->meshRenderer = ret->meshRenderer;
             }
             else
