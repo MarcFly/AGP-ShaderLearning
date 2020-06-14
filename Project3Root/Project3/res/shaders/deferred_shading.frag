@@ -51,13 +51,13 @@ void main(void)
 
     // We need to pass camera position or direction to get specular ffs
     // Blin = Halfway direction between CameraVectorS and Light Direction
-    vec3 BlinVec =  (camVec + ldir) / (length(camVec+ldir));;
+    vec3 BlinVec =  normalize(camVec + ldir);// / (length(camVec+ldir));
     // Shininess factor needs to be passed from Material, not just an arbitrary value.
-    float k_s = pow(max(dot(N, BlinVec), 0.), 2.);
+    float k_s = pow(max(dot(BlinVec, N), 0.), 16.);
 
     // Phong = Get ldir that reflects off of Normal of the Point
     vec3 PhongVec = normalize(reflect(ldir, N));
-    //k_s = pow(max(dot(camVec, PhongVec), 0.), 16.);
+    k_s = pow(max(dot(camVec, PhongVec), 0.), 16.);
 
     // Techincally we put albedoSpec val, but we don't pass it
     // So I put 1 instead to get some specular
