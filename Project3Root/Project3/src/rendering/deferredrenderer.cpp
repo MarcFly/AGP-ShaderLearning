@@ -16,6 +16,8 @@
 #include <QOpenGLTexture>
 #include <Qt3DCore/QTransform>
 
+#include <random>
+
 // https://learnopengl.com/Advanced-Lighting/Deferred-Shading
 
 DeferredRenderer::DeferredRenderer() :
@@ -28,7 +30,8 @@ DeferredRenderer::DeferredRenderer() :
     fboEditorDepth(QOpenGLTexture::Target2D),
     fboOutlineMask(QOpenGLTexture::Target2D),
     stepBlur(QOpenGLTexture::Target2D),
-    dofMask(QOpenGLTexture::Target2D)
+    dofMask(QOpenGLTexture::Target2D),
+    fboSSAO(QOpenGLTexture::Target2D)
 {
     fbo = nullptr;
     gbo = nullptr;
@@ -37,6 +40,7 @@ DeferredRenderer::DeferredRenderer() :
     blurDebugBO = nullptr;
     dofBlurBO = nullptr;
     dofMaskBO = nullptr;
+    ssaoBO = nullptr;
 
     // List of Textures
     addTexture("Final Render");
@@ -45,6 +49,7 @@ DeferredRenderer::DeferredRenderer() :
     addTexture("Normals");
     addTexture("AlbedoSpec");
     addTexture("DOF Mask");
+    addTexture("SSAO Debug");
     addTexture("Depth");
     addTexture("Editor Depth");
     addTexture("Outline Mask");
@@ -105,6 +110,12 @@ DeferredRenderer::DeferredRenderer() :
     // DOF State is 2 Passes - Mask Pass = Geometry Pass
     // Blur Pass -> Main State, does not require a special State
 
+    // SSAO State
+    ssaoState = mainState;
+    // For now because i can't wrpa my head around blendfuncs
+    // no blending, full quad write and read from the ambient
+    // write the same to final and albedoSpec, will make sense later
+
 }
 
 DeferredRenderer::~DeferredRenderer()
@@ -117,6 +128,7 @@ DeferredRenderer::~DeferredRenderer()
     delete blurDebugBO;
     delete dofMaskBO;
     delete dofBlurBO;
+    delete ssaoBO;
 }
 
 void DeferredRenderer::initialize()
@@ -181,6 +193,13 @@ void DeferredRenderer::initialize()
     dofMaskProgram->fragmentShaderFilename = "res/shaders/dof/dof.frag";
     dofMaskProgram->includeForSerialization = false;
 
+    // Screen Space Ambient Occlusion Program
+    ssaoProgram = resourceManager->createShaderProgram();
+    ssaoProgram->name = "SSAO";
+    ssaoProgram->vertexShaderFilename = "res/shaders/blit.vert";
+    ssaoProgram->fragmentShaderFilename = "res/shaders/ao/ssao.frag";
+    ssaoProgram->includeForSerialization = false;
+
     // Create the main FBO
     fbo = new FramebufferObject;
     fbo->create();
@@ -205,6 +224,9 @@ void DeferredRenderer::initialize()
 
     dofBlurBO = new FramebufferObject;
     dofBlurBO->create();
+
+    ssaoBO = new FramebufferObject;
+    ssaoBO->create();
 
     gl->glClearColor(0.,0.,0.,0.);
     gl->glClearDepth(1.0);
@@ -235,6 +257,9 @@ void DeferredRenderer::finalize()
 
     dofBlurBO->destroy();
     delete dofBlurBO;
+
+    ssaoBO->destroy();
+    delete ssaoBO;
 
 }
 
@@ -436,6 +461,21 @@ void DeferredRenderer::dofPrep(int w, int h)
 
 }
 
+void DeferredRenderer::ssaoPrep(int w, int h)
+{
+    // In SSAO specific shader, we mult albedo/ambient value by the occlusion factor calculated
+    // with that we do less work and textures are prepared for use in lighting or even without it
+
+    ssaoBO->bind();
+    ssaoBO->addColorAttachment(0, fboFinal);
+    ssaoBO->addColorAttachment(1, gboAlbedoSpec);
+    ssaoBO->addDepthAttachment(fboDepth);
+    unsigned int attachments[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+    gl->glDrawBuffers(2, attachments);
+    ssaoBO->checkStatus();
+    ssaoBO->release();
+}
+
 void DeferredRenderer::resize(int w, int h)
 {
     OpenGLErrorGuard guard("DeferredRenderer::resize()");
@@ -450,6 +490,7 @@ void DeferredRenderer::resize(int w, int h)
     blurDebugPrep(w,h);
 
     dofPrep(w, h);
+    ssaoPrep(w,h);
     // Debug Preps
 
 }
@@ -486,6 +527,10 @@ void DeferredRenderer::CleanFirstBuffers()
     dofBlurBO->bind();
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     dofBlurBO->release();
+
+    ssaoBO->bind();
+    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    ssaoBO->release();
 }
 
 void DeferredRenderer::render(Camera *camera)
@@ -499,8 +544,10 @@ void DeferredRenderer::render(Camera *camera)
 
     if(shownTexture() == "Final Render" || shownTexture() == "DOF Mask")
     {
-        passLighting(camera);
-        PassDOF(camera);
+
+        PassSSAO(camera);
+        //passLighting(camera);
+        //PassDOF(camera);
 
     }
     else // I do else to get every debug things without worrying if it would be seen
@@ -511,6 +558,88 @@ void DeferredRenderer::render(Camera *camera)
     }
 
     passBlit();
+}
+
+void DeferredRenderer::PassSSAO(Camera* camera)
+{
+    OpenGLErrorGuard guard("DeferredRenderer::PassSSAO()");
+    ssaoState.apply();
+
+    ssaoBO->bind();
+
+    QOpenGLShaderProgram &program = ssaoProgram->program;
+    if(program.bind())
+    {
+        program.setUniformValue("outColor", 0);
+        gl->glActiveTexture(GL_TEXTURE0);
+        gl->glBindTexture(GL_TEXTURE_2D, fboFinal);
+
+        program.setUniformValue("albedoSpec", 1);
+        gl->glActiveTexture(GL_TEXTURE1);
+        gl->glBindTexture(GL_TEXTURE_2D, gboAlbedoSpec);
+
+        program.setUniformValue("depth", 2);
+        gl->glActiveTexture(GL_TEXTURE1);
+        gl->glBindTexture(GL_TEXTURE_2D, fboDepth);
+
+        program.setUniformValue("normal", 3);
+        gl->glActiveTexture(GL_TEXTURE2);
+        gl->glBindTexture(GL_TEXTURE_2D, gboNormal);
+
+        program.setUniformValue("projection", camera->projectionMatrix);
+
+        std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // random floats between [0.0, 1.0]
+        std::default_random_engine generator;
+        std::vector<QVector3D> ssaoKernel;
+        // Allow kernel resize and pass it as uniform
+        for (unsigned int i = 0; i < 64; ++i)
+        {
+            QVector3D sample(
+                randomFloats(generator) * 2.0 - 1.0,
+                randomFloats(generator) * 2.0 - 1.0,
+                randomFloats(generator)
+            );
+            sample  = sample.normalized();
+            sample *= randomFloats(generator);
+
+            float scale = (float)i / 64.0;
+            float f = scale*scale;
+            // Lerp the scale to be closer to fragment
+            scale = (.1 + f *(1. -.1));
+            sample *= scale;
+
+            ssaoKernel.push_back(sample);
+        }
+
+        program.setUniformValueArray("kernel", &ssaoKernel[0], ssaoKernel.size());
+
+        std::vector<QVector3D> ssaoNoise;
+        // Allow noise resize and pass it as uniform
+        for (unsigned int i = 0; i < 16; i++)
+        {
+            QVector3D noise(
+                randomFloats(generator) * 2.0 - 1.0,
+                randomFloats(generator) * 2.0 - 1.0,
+                0.0f);
+            ssaoNoise.push_back(noise);
+        }
+
+        program.setUniformValueArray("noise", &ssaoNoise[0], ssaoNoise.size());
+
+        program.setUniformValue("camParams", camera->getLeftRightBottomTop());
+        program.setUniformValue("z", camera->znear, camera->zfar);
+
+        // Allow substitution of the aoRad through miscSettings
+        program.setUniformValue("aoRad", .5f);
+
+        resourceManager->quad->submeshes[0]->draw();
+
+
+    }
+
+    ssaoBO->release();
+
+
 }
 
 void DeferredRenderer::PassDOF(Camera *camera)
@@ -970,7 +1099,6 @@ void DeferredRenderer::passBlit()
         }
         else if(shownTexture() == "Position"){
             gl->glBindTexture(GL_TEXTURE_2D, gboPosition);
-
         }
         else if(shownTexture() == "Normals"){
             gl->glBindTexture(GL_TEXTURE_2D, gboNormal);
