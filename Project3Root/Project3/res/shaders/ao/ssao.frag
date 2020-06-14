@@ -1,7 +1,6 @@
 #version 330 core
 
-layout(location=0) out vec4 outColor;
-layout(location=1) out vec4 albedoSpec;
+out float outColor;
 
 uniform sampler2D depth;
 uniform sampler2D normal;
@@ -18,6 +17,11 @@ uniform vec4 camParams;
 uniform vec2 z;
 
 in vec2 texCoord;
+
+float rand(vec2 n)
+{
+    return fract(sin(dot(n, vec2(12.9898, 4.1414))) * (43758.5453));
+}
 
 vec3 pixelPos(float d, float l, float r, float b, float t, float n, float f, vec2 v)
 {
@@ -48,9 +52,11 @@ void main()
 
     float d = texture2D(depth, texCoord).x;
     vec3 fragPos = fpixelPos(d, inverse(projection), vpSize);
+    //fragPos = pixelPos(d, camParams.x, camParams.y, camParams.z, camParams.w, z.x, z.y, vpSize);
     vec3 normal = texture2D(normal, texCoord).rgb;
 
-    int nval = int(texCoord * 15);
+    vec2 nScale = vpSize / 4;
+    int nval = int(rand(texCoord) * nScale);
     vec3 rvec = noise[nval];
 
     vec3 tangent = normalize(rvec - normal * dot(rvec, normal));
@@ -69,12 +75,13 @@ void main()
         offset.xyz = offset.xyz *.5 + .5;
         float smplDepth = texture(depth, offset.xy).x;
 
-        float rangeCheck = smoothstep(0.,1., aoRad / abs(d - smplDepth));
-        occl += (smplDepth >=d + .001 ? 1. : 0.)*rangeCheck;
+        //float rangeCheck = smoothstep(0.,1., aoRad / abs(d - smplDepth));
+        occl += (smplDepth >=d + .001 ? 1. : 0.);//*rangeCheck;
     }
 
 
     // End Color
-    outColor = vec4(1. - (occl / 64));
-    albedoSpec = vec4(1.);
+    outColor = (occl / 64);
+
+    //outColor = 1.;
 }

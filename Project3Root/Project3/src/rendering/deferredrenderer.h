@@ -45,6 +45,8 @@ private:
 
     void PassBlur(FramebufferObject* fb, GLuint Read, GLuint DepthRead, GLuint Mask = UINT_MAX);
 
+    void PassBlurMask(FramebufferObject* fb, GLuint Read, GLuint Mask = UINT_MAX);
+
     void PassDOF(Camera* camera);
 
     void PassSSAO(Camera* camera);
@@ -59,10 +61,12 @@ private:
     ShaderProgram *maskProgram = nullptr;
 
     ShaderProgram *blurProgram = nullptr;
+    ShaderProgram *blurMaskProgram = nullptr;
 
     ShaderProgram *dofMaskProgram = nullptr;
 
     ShaderProgram *ssaoProgram = nullptr;
+    ShaderProgram *applySSAO = nullptr;
 
     // MAIN Textures Needed
 
@@ -81,6 +85,7 @@ private:
 
     // Blur Based Passes
     GLuint stepBlur = 0;
+    GLuint stepFBlur = 0;
 
     GLuint dofMask = 0;
 
@@ -99,6 +104,7 @@ private:
 
     OpenGLState ssaoState;
     FramebufferObject *ssaoBO = nullptr;
+    FramebufferObject *blurSSAO = nullptr;
 
     FramebufferObject *dofBlurBO = nullptr;
     FramebufferObject *dofMaskBO = nullptr;

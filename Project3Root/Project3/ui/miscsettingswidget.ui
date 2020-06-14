@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>269</width>
-    <height>712</height>
+    <height>1011</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -28,7 +28,7 @@
         <x>0</x>
         <y>0</y>
         <width>249</width>
-        <height>692</height>
+        <height>991</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -398,7 +398,7 @@
              <double>0.100000000000000</double>
             </property>
             <property name="value">
-             <double>10.000000000000000</double>
+             <double>5.000000000000000</double>
             </property>
            </widget>
           </item>
@@ -418,7 +418,7 @@
              <double>0.100000000000000</double>
             </property>
             <property name="value">
-             <double>20.000000000000000</double>
+             <double>2.000000000000000</double>
             </property>
            </widget>
           </item>
@@ -438,7 +438,7 @@
              <double>0.050000000000000</double>
             </property>
             <property name="value">
-             <double>4.000000000000000</double>
+             <double>1.000000000000000</double>
             </property>
            </widget>
           </item>
@@ -457,6 +457,32 @@
              <string>TODO: Checkboxes for render techniques</string>
             </property>
            </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox_7">
+         <property name="title">
+          <string>SSAO Controls</string>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_4">
+          <item row="0" column="0">
+           <widget class="QCheckBox" name="checkSSAO">
+            <property name="text">
+             <string>SSAO</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_13">
+            <property name="text">
+             <string>Radius</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QDoubleSpinBox" name="aoRadSpin"/>
           </item>
          </layout>
         </widget>

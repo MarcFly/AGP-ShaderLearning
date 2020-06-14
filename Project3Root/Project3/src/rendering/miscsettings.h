@@ -32,6 +32,10 @@ public:
     float dofFalloff = 2.;
     bool checkDOF = true;
 
+    // SSAO Controls
+    bool checkSSAO = false;
+    float aoRadius = .5;
+
     void read(const QJsonObject &json);
     void write(QJsonObject &json);
 
