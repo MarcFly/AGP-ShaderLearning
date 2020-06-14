@@ -21,6 +21,18 @@ void Interaction::init()
     mpProgram->fragmentShaderFilename = "res/shaders/mouse_picking.frag";
     mpProgram->includeForSerialization = false;
 
+    // Mouse Picking State
+    mpState.depthTest = true;
+    mpState.depthFunc = GL_LEQUAL;
+    mpState.depthWrite = false;
+    mpState.faceCulling = true;
+    mpState.faceCullingMode = GL_BACK;
+    mpState.blending = true;         // No blend
+    mpState.blendFuncSrc = GL_ONE;    // New Color wins
+    mpState.blendFuncDst = GL_ZERO;
+
+
+
 }
 
 bool Interaction::update()
@@ -175,14 +187,11 @@ bool Interaction::mousePicking()
     selection->clear();
     selectedEntity = nullptr;
     frameBuffer->bind();
-    // Enable Blending of Buffers
-    gl->glDisable(GL_BLEND);
 
-    // Backface culling and z-test
-    gl->glDisable(GL_CULL_FACE);
-    gl->glEnable(GL_DEPTH_TEST);
-
+    // Apply previously
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    mpState.apply();
+
     passMeshes();
     GLfloat* pixel = (GLfloat*)malloc(sizeof(GLfloat)*3);
     glReadPixels(input->mousex, camera->viewportHeight - input->mousey, 1, 1, GL_RGB, GL_FLOAT, pixel);

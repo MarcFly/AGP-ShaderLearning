@@ -39,6 +39,7 @@ private:
     Entity* selectedEntity = nullptr;
 
 
+    OpenGLState mpState;
 
     enum State { Idle, Navigating, Focusing, MousePicking };
     State state = State::Idle;
