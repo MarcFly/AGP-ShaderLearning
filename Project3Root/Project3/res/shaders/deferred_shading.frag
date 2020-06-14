@@ -48,7 +48,7 @@ void main(void)
 
     // We need to pass camera position or direction to get specular ffs
     // Blin = Halfway direction between CameraVector and Light Direction
-    vec3 BlinVec = normalize(camVec + ldir);
+    vec3 BlinVec =  (camVec + ldir) / (length(camVec+ldir));;
     // Shininess factor needs to be passed from Material, not just an arbitrary value.
     float k_s = pow(max(dot(N, BlinVec), 0.), 2.);
 

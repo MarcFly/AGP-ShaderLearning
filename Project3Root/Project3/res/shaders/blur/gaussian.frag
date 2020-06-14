@@ -56,10 +56,10 @@ void main()
         float d2 = clamp(texture2D(depth, uv).r, 0.,1.);
         d2 = abs((2 * f * n) / ((d2 * 2.0 - 1.0) *(f-n)-(f+n)))/50.;
 
-        float diff = clamp(ceil(d2 - dVal), 0.,1.);
-
-        float masktake = maskn*diff + 1.;
-        if(d2 > dVal) maskn = 1.;
+        //if(d2 > dVal) maskn = 1.;
+        float fb = clamp(ceil(dVal - d2), 0., .1);
+        //fb = (1. - fb) * maskval;
+        maskn = mix(maskn, maskval, fb);
 
         blurCol += texture2D(colorMap, uv).rgb * weights[j]*maskn;
         uv += dir_corrected;
