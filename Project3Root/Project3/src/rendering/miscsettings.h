@@ -24,17 +24,21 @@ public:
 
     // Blur Controls
     float blurVal = 1.;
-    int blurType = 0; // 0 = Gaussian
+    bool checkBlur = false;
+    bool maskBlur = false;
 
     // DOF Controls
-    float dofFocusDistance = 10.;
-    float dofFocusDepth = 5.;
-    float dofFalloff = 2.;
+    float dofFocusDistance = 5.;
+    float dofFocusDepth = 2.;
+    float dofFalloff = 1.;
     bool checkDOF = true;
+    bool checkBleed = false;
 
     // SSAO Controls
-    bool checkSSAO = false;
+    bool checkSSAO = true;
+    bool blurSSAO = true;
     float aoRadius = .5;
+
 
     void read(QJsonObject &json);
     void write(QJsonObject &json);

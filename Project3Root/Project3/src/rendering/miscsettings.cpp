@@ -34,10 +34,6 @@ void MiscSettings::read(QJsonObject &json)
         {
             this->OutlineAlpha = j.value().toDouble();
         }
-        else if (key == "blurType")
-        {
-            this->blurType = j.value().toInt();
-        }
         else if (key == "backgroundColorR")
         {
             this->backgroundColor.setRed(j.value().toInt());
@@ -84,7 +80,11 @@ void MiscSettings::read(QJsonObject &json)
         }
         else if(key == "ssaoRad")
         {
-            this->aoRadius = j.value().toBool();
+            this->aoRadius = j.value().toDouble();
+        }
+        else if(key == "blurSSAO")
+        {
+            this->blurSSAO = j.value().toBool();
         }
         else if(key == "bgColR")
         {
@@ -110,6 +110,18 @@ void MiscSettings::read(QJsonObject &json)
         {
             this->gridColor.setBlueF(j.value().toDouble());
         }
+        else if(key == "DOFBleed")
+        {
+            this->checkBleed = j.value().toBool();
+        }
+        else if(key == "checkBlur")
+        {
+            this->checkBlur = j.value().toBool();
+        }
+        else if(key == "maskBlur")
+        {
+            this->maskBlur = j.value().toBool();
+        }
     }
 
 
@@ -126,7 +138,8 @@ void MiscSettings::write(QJsonObject &json)
 
     //blur
     json["blurVal"] = this->blurVal;
-    json["blurType"] = this->blurType;
+    json["checkBlur"] = this->checkBlur;
+    json["maskBlur"] = this->maskBlur;
 
     //background
     json["backgroundColorR"] = this->backgroundColor.red();
@@ -139,6 +152,7 @@ void MiscSettings::write(QJsonObject &json)
     json["DOFFocusDepth"] = this->dofFocusDepth;
     json["DOFFall"] = this->dofFalloff;
     json["DOFFocusDistance"] = this->dofFocusDistance;
+    json["DOFBleed"] = this->checkBleed;
 
 
     //Editor visual hints
@@ -155,5 +169,6 @@ void MiscSettings::write(QJsonObject &json)
     //SSAO
     json["SSAO"] = this->checkSSAO;
     json["ssaoRad"] = this->aoRadius;
+    json["blurSSAO"] = this->blurSSAO;
 
 }
