@@ -50,6 +50,7 @@ private:
     void PassDOF(Camera* camera);
 
     void PassSSAO(Camera* camera);
+    void RegenSSAORandoms();
 
     // Shaders
     ShaderProgram *gpassProgram = nullptr;
@@ -91,6 +92,8 @@ private:
 
     // SSAO Debug Texture
     GLuint fboSSAO = 0;
+    GLuint noiseTex = 0;
+    std::vector<QVector3D> ssaoKernel;
 
     // Framebuffers, defined for use
 

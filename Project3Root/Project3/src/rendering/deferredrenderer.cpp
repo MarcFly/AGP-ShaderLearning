@@ -322,7 +322,7 @@ void DeferredRenderer::gboPrep(int w, int h)
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, w, h, 0, GL_RGB, GL_FLOAT, nullptr);
+    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, w, h, 0, GL_RGB, GL_FLOAT, nullptr);
 
     if (gboNormal == 0) gl->glDeleteTextures(1, &gboNormal);
     gl->glGenTextures(1, &gboNormal);
@@ -332,7 +332,7 @@ void DeferredRenderer::gboPrep(int w, int h)
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, w, h, 0, GL_RGB, GL_FLOAT, nullptr);
+    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, w, h, 0, GL_RGB, GL_FLOAT, nullptr);
 
     if (gboAlbedoSpec == 0) gl->glDeleteTextures(1, &gboAlbedoSpec);
     gl->glGenTextures(1, &gboAlbedoSpec);
@@ -446,7 +446,7 @@ void DeferredRenderer::blurDebugPrep(int w, int h)
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, w, h, 0, GL_RED, GL_FLOAT, nullptr);
+    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, w, h, 0, GL_RED, GL_FLOAT, nullptr);
 
     blurDebugBO->bind();
     blurDebugBO->addColorAttachment(0, fboEditor);
@@ -495,8 +495,7 @@ void DeferredRenderer::ssaoPrep(int w, int h)
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, w, h, 0, GL_RED, GL_FLOAT, nullptr);
-
+    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, w, h, 0, GL_RED, GL_FLOAT, nullptr);
 
     ssaoBO->bind();
     ssaoBO->addColorAttachment(0, fboSSAO);
@@ -600,6 +599,50 @@ void DeferredRenderer::render(Camera *camera)
     passBlit();
 }
 
+void DeferredRenderer::RegenSSAORandoms()
+{
+    std::uniform_real_distribution<float> randomFloats(0.0, 1.0);
+    std::default_random_engine generator;
+
+    ssaoKernel.clear();
+    for (unsigned int i = 0; i < 64; ++i)
+    {
+        QVector3D sample(
+            randomFloats(generator) * 2.0 - 1.0,
+            randomFloats(generator) * 2.0 - 1.0,
+            randomFloats(generator)
+        );
+        sample  = sample.normalized();
+        sample *= randomFloats(generator);
+
+        float scale = (float)i / 64.0;
+        float f = scale*scale;
+        // Lerp the scale to be closer to fragment
+        scale = (.1 + f *(1. -.1));
+        sample *= scale;
+
+        ssaoKernel.push_back(sample);
+    }
+
+    std::vector<QVector3D> ssaoNoise;
+    for (unsigned int i = 0; i < 16; i++)
+    {
+        QVector3D noise(
+            randomFloats(generator) * 2.0 - 1.0,
+            randomFloats(generator) * 2.0 - 1.0,
+            0.0f);
+        ssaoNoise.push_back(noise);
+    }
+
+    glGenTextures(1, &noiseTex);
+    glBindTexture(GL_TEXTURE_2D, noiseTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 4, 4, 0, GL_RGB, GL_FLOAT, &ssaoNoise[0]);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+}
+
 void DeferredRenderer::PassSSAO(Camera* camera)
 {
 
@@ -623,46 +666,19 @@ void DeferredRenderer::PassSSAO(Camera* camera)
         gl->glActiveTexture(GL_TEXTURE1);
         gl->glBindTexture(GL_TEXTURE_2D, gboNormal);
 
-        program.setUniformValue("projection", camera->projectionMatrix);
+        RegenSSAORandoms();
 
-        std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // random floats between [0.0, 1.0]
-        std::default_random_engine generator;
-        std::vector<QVector3D> ssaoKernel;
-        for (unsigned int i = 0; i < 64; ++i)
-        {
-            QVector3D sample(
-                randomFloats(generator) * 2.0 - 1.0,
-                randomFloats(generator) * 2.0 - 1.0,
-                randomFloats(generator)
-            );
-            sample  = sample.normalized();
-            sample *= randomFloats(generator);
+        program.setUniformValue("noiseTex", 2);
+        gl->glActiveTexture(GL_TEXTURE2);
+        gl->glBindTexture(GL_TEXTURE_2D, noiseTex);
 
-            float scale = (float)i / 64.0;
-            float f = scale*scale;
-            // Lerp the scale to be closer to fragment
-            scale = (.1 + f *(1. -.1));
-            sample *= scale;
-
-            ssaoKernel.push_back(sample);
-        }
+        program.setUniformValue("projection", camera->projectionMatrix);        
 
         program.setUniformValueArray("kernel", &ssaoKernel[0], ssaoKernel.size());
 
-        std::vector<QVector3D> ssaoNoise;
-        for (unsigned int i = 0; i < 16; i++)
-        {
-            QVector3D noise(
-                randomFloats(generator) * 2.0 - 1.0,
-                randomFloats(generator) * 2.0 - 1.0,
-                0.0f);
-            ssaoNoise.push_back(noise);
-        }
-
-        program.setUniformValueArray("noise", &ssaoNoise[0], ssaoNoise.size());
-
         program.setUniformValue("camParams", camera->getLeftRightBottomTop());
         program.setUniformValue("z", camera->znear, camera->zfar);
+        program.setUniformValue("viewP", camera->viewportWidth, camera->viewportHeight);
 
         // Allow substitution of the aoRad through miscSettings
         program.setUniformValue("aoRad", miscSettings->aoRadius);
@@ -674,7 +690,8 @@ void DeferredRenderer::PassSSAO(Camera* camera)
 
     ssaoBO->release();
 
-    PassBlurMask(blurSSAO,fboSSAO);
+    //PassBlurMask(blurSSAO,fboSSAO);
+    //PassBlur(blurSSAO, fboSSAO, fboDepth);
 }
 
 void DeferredRenderer::PassBlurMask(FramebufferObject *fb, GLuint Read, GLuint Mask)
