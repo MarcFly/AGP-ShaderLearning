@@ -49,9 +49,8 @@ void main()
             for(int j = -5;  j < 6; ++j)
             {
                 float d2 = texture2D(depth, texCoord + uv*vec2(i,j)).r;
-                //d2 = abs((2 * f * n) / ((d2 * 2.0 - 1.0) *(f-n)-(f+n)))/50.;
 
-                float fb = (d - d2 < .001 ? 0. : 1.);
+                float fb = ((d - d2) < .001 ? 0. : 1.);
 
                 blurCol += calcBlur(d2,f,n)*fb;
                 sumweights += fb;
@@ -61,9 +60,9 @@ void main()
 
         //blurCol = sumweights / (11*11);
 
-        if( val <= 0.1)
-        val += blurCol;
+        float ratio = 1. - smoothstep(11*11, 0., sumweights*2.);
+        val = mix(val, blurCol, ratio);
     }
 
-    outColor = clamp(val, 0., 1.);
+    outColor = val;
 }
