@@ -779,6 +779,8 @@ void DeferredRenderer::PassDOF(Camera *camera)
 
         program.setUniformValue("z", camera->znear, camera->zfar);
 
+        program.setUniformValue("bleed", miscSettings->checkBleed);
+
         program.setUniformValue("depth", 0);
         gl->glActiveTexture(GL_TEXTURE0);
         gl->glBindTexture(GL_TEXTURE_2D, fboDepth);
