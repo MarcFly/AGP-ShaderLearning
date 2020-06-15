@@ -1121,10 +1121,15 @@ void DeferredRenderer::passLighting(Camera* camera)
 
         program.setUniformValue("SSAO", 3);
         gl->glActiveTexture(GL_TEXTURE3);
+        if(miscSettings->checkSSAO)
+        {
         if(miscSettings->blurSSAO)
             gl->glBindTexture(GL_TEXTURE_2D, fboBlurSSAO);
         else
             gl->glBindTexture(GL_TEXTURE_2D, fboSSAO);
+        }
+        else
+            gl->glBindTexture(GL_TEXTURE_2D, resourceManager->texWhite->textureId());
 
         program.setUniformValue("ViewPort", camera->viewportWidth, camera->viewportHeight);
         program.setUniformValue("camPos", camera->position);
@@ -1169,7 +1174,7 @@ void DeferredRenderer::passLighting(Camera* camera)
                 }
                 else if(light->type == LightSource::Type::Directional)
                 {
-                   gl->glEnable(GL_DEPTH_TEST);
+                   gl->glDisable(GL_DEPTH_TEST);
                    gl->glDisable(GL_CULL_FACE);
                    program.setUniformValue("worldViewMatrix", QMatrix4x4());
                    program.setUniformValue("projectionMatrix", QMatrix4x4());

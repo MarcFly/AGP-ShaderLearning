@@ -270,7 +270,7 @@ void MainWindow::addDirectionalLight()
 
 void MainWindow::importModel()
 {
-    QString path = QFileDialog::getOpenFileName(this, "Choose a 3D model file.","../Project3/res/models", "3D Models (*.obj *.fbx)");
+    QString path = QFileDialog::getOpenFileName(this, "Choose a 3D model file.","./", "3D Models (*.obj *.fbx)");
     if (path.isEmpty()) return;
 
     ModelImporter importer;

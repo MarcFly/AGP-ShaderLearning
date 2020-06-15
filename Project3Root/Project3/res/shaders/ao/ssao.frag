@@ -85,9 +85,8 @@ void main()
         // is or not behind the actual geometry
         // In addition we test if the distance is greater than it should
         // thus making sure that distances too big don't occlude each other
-        float rangeCheck = smoothstep(1., 0., aoRad / abs(smplpos.z - smpl.z));
-        rangeCheck *= rangeCheck;
-        occl += (smplpos.z < smpl.z - .02 ? 1.:0.) * rangeCheck;
+        float rangeCheck = smoothstep(0., 1., aoRad / abs(smplpos.z - smpl.z));
+        occl += (smplpos.z < smpl.z - .002 ? 1.:0.) * rangeCheck;
 
 
     }

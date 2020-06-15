@@ -38,7 +38,7 @@ void main(void)
     // Diffuse - Lambertian
     // Specular - Fresnel, the more parallel the viewer is to a surface, more reflective it becomes
 
-    vec3 finalCol = vec3(albedoSpec.rgb * AMBIENT * (1. - texture2D(SSAO, texCoord).r));
+    vec3 finalCol = vec3(albedoSpec.rgb * AMBIENT * texture2D(SSAO, texCoord).r);
     vec3 dlCol = vec3(0.);
     vec3 ldir = lightDirection;
     if(lightType == 0)
