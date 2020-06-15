@@ -497,6 +497,16 @@ void DeferredRenderer::ssaoPrep(int w, int h)
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, w, h, 0, GL_RED, GL_FLOAT, nullptr);
 
+    if (fboBlurSSAO == 0) gl->glDeleteTextures(1, &fboBlurSSAO);
+    gl->glGenTextures(1, &fboBlurSSAO);
+    gl->glBindTexture(GL_TEXTURE_2D, fboBlurSSAO);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, w, h, 0, GL_RED, GL_FLOAT, nullptr);
+
     ssaoBO->bind();
     ssaoBO->addColorAttachment(0, fboSSAO);
     ssaoBO->addDepthAttachment(fboDepth);
@@ -504,7 +514,7 @@ void DeferredRenderer::ssaoPrep(int w, int h)
     ssaoBO->release();
 
     blurSSAO->bind();
-    blurSSAO->addColorAttachment(0, fboSSAO);
+    blurSSAO->addColorAttachment(0, fboBlurSSAO);
     blurSSAO->addColorAttachment(1, stepFBlur);
     blurSSAO->addDepthAttachment(fboDepth);
     blurSSAO->checkStatus();
@@ -593,7 +603,10 @@ void DeferredRenderer::render(Camera *camera)
     {
         PassGridBackground(camera);
         PassOutline(camera);
-        PassBlur(blurDebugBO, fboEditor, fboEditorDepth, fboOutlineMask);
+
+        GLuint t = (miscSettings->maskBlur) ? fboOutlineMask : UINT_MAX;
+        if(miscSettings->checkBlur)
+            PassBlur(blurDebugBO, fboEditor, fboEditorDepth, t);
     }
 
     passBlit();
@@ -690,7 +703,7 @@ void DeferredRenderer::PassSSAO(Camera* camera)
 
     ssaoBO->release();
 
-    //PassBlurMask(blurSSAO,fboSSAO);
+    PassBlurMask(blurSSAO,fboSSAO);
     //PassBlur(blurSSAO, fboSSAO, fboDepth);
 }
 
@@ -741,10 +754,6 @@ void DeferredRenderer::PassBlurMask(FramebufferObject *fb, GLuint Read, GLuint M
         gl->glBindTexture(GL_TEXTURE_2D, Mask);
 
         resourceManager->quad->submeshes[0]->draw();
-
-
-
-
     }
     fb->release();
 }
@@ -1110,7 +1119,10 @@ void DeferredRenderer::passLighting(Camera* camera)
 
         program.setUniformValue("SSAO", 3);
         gl->glActiveTexture(GL_TEXTURE3);
-        gl->glBindTexture(GL_TEXTURE_2D, fboSSAO);
+        if(miscSettings->blurSSAO)
+            gl->glBindTexture(GL_TEXTURE_2D, fboBlurSSAO);
+        else
+            gl->glBindTexture(GL_TEXTURE_2D, fboSSAO);
 
         program.setUniformValue("ViewPort", camera->viewportWidth, camera->viewportHeight);
         program.setUniformValue("camPos", camera->position);

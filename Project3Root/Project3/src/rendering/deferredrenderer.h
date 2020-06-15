@@ -93,6 +93,7 @@ private:
     // SSAO Debug Texture
     GLuint fboSSAO = 0;
     GLuint noiseTex = 0;
+    GLuint fboBlurSSAO = 0;
     std::vector<QVector3D> ssaoKernel;
 
     // Framebuffers, defined for use

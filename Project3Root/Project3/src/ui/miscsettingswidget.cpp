@@ -32,9 +32,14 @@ MiscSettingsWidget::MiscSettingsWidget(QWidget *parent) :
     connect(ui->distSpin, SIGNAL(valueChanged(double)), this, SLOT(onDOFDistChanged(double)));
     connect(ui->depthSpin, SIGNAL(valueChanged(double)), this, SLOT(onDOFDepthChanged(double)));
     connect(ui->falloffSpin, SIGNAL(valueChanged(double)), this, SLOT(onDOFFalloffChanged(double)));
+    connect(ui->checkBleed, SIGNAL(clicked()), this, SLOT(onVisualHintChanged()));
 
     connect(ui->checkSSAO, SIGNAL(clicked()), this, SLOT(onVisualHintChanged()));
     connect(ui->aoRadSpin, SIGNAL(valueChanged(double)), this, SLOT(onSSAORadChanged(double)));
+    connect(ui->checkBlurSSAO, SIGNAL(clicked()), this, SLOT(onVisualHintChanged()));
+    connect(ui->checkBlurMask, SIGNAL(clicked()), this, SLOT(onVisualHintChanged()));
+    connect(ui->checkBlur, SIGNAL(clicked()), this, SLOT(onVisualHintChanged()));
+
     connect(selection, SIGNAL(updateMiscSettings()), this, SLOT(updateSettings()));
 
 }
@@ -150,6 +155,10 @@ void MiscSettingsWidget::onVisualHintChanged()
     miscSettings->checkDOF = ui->globalDOF->isChecked();
 
     miscSettings->checkSSAO = ui->checkSSAO->isChecked();
+    miscSettings->blurSSAO = ui->checkBlurSSAO->isChecked();
+    miscSettings->checkBlur = ui->checkBlur->isChecked();
+    miscSettings->checkBleed = ui->checkBleed->isChecked();
+    miscSettings->maskBlur = ui->checkBlurMask->isChecked();
 
     emit settingsChanged();
 }
