@@ -72,7 +72,6 @@ private:
     // MAIN Textures Needed
 
     GLuint fboFinal = 0;
-    GLuint fboEditor = 0;
     GLuint fboDepth = 0;
 
     // Geometry Pass
@@ -81,7 +80,6 @@ private:
     GLuint gboNormal = 0;
 
     // Editor Passes Textures
-    GLuint fboEditorDepth = 0;
     GLuint fboOutlineMask = 0;
 
     // Blur Based Passes
@@ -109,6 +107,7 @@ private:
     OpenGLState ssaoState;
     FramebufferObject *ssaoBO = nullptr;
     FramebufferObject *blurSSAO = nullptr;
+    FramebufferObject *ssaoPass = nullptr;
 
     FramebufferObject *dofBlurBO = nullptr;
     FramebufferObject *dofMaskBO = nullptr;

@@ -50,10 +50,10 @@ void main()
 {
     float d = texture2D(depth, texCoord).x;
     vec3 fragPos = depthPixelPos(d, inverse(projection), viewP);
-    vec3 vnormal = texture2D(normal,texCoord).rgb;
+    vec3 vnormal = normalize(texture2D(normal,texCoord).rgb * 2. - 1.);
 
     vec2 nScale = viewP / 4.;
-    vec3 rvec = texture2D(noiseTex, texCoord*viewP).rgb;
+    vec3 rvec = normalize(texture2D(noiseTex, texCoord*viewP).rgb * 2. - 1.);
 
     vec3 tangent = normalize(rvec - vnormal * dot(rvec, vnormal));
     //vec3 tangent = cross(vnormal, vec3(0.,1.,0.));
@@ -89,7 +89,7 @@ void main()
         // In addition we test if the distance is greater than it should
         // thus making sure that distances too big don't occlude each other
         float rangeCheck = smoothstep(0., 1., aoRad / abs(fragPos.z - smpl.z));
-        //rangeCheck *= rangeCheck;
+        rangeCheck *= rangeCheck;
         occl += (smplpos.z < smpl.z - .02 ? 1.:0.) * rangeCheck;
 
 
@@ -97,6 +97,6 @@ void main()
 
 
     // End Color
-    outColor = 1. - (occl / 64);
+    outColor = (occl / 64);
     //outColor = 1.;
 }

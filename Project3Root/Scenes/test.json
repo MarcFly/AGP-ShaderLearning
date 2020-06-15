@@ -26,13 +26,13 @@
             "a": 255,
             "b": 255,
             "g": 255,
-            "intensity": 5,
+            "intensity": 1,
             "r": 255,
             "range": 6.699999809265137,
             "type": 0
         },
         "TransformComponent": {
-            "PosRotScale": "3,5,4,0,0,0,1,1,1,"
+            "PosRotScale": "3,5,0.2,0,0,0,1,1,1,"
         },
         "isActive": true,
         "name": "Point light",
@@ -56,9 +56,9 @@
         "bgColR": 0.1568627450980392,
         "blurSSAO": true,
         "blurVal": 1,
-        "cameraData": "-0.345624,0.245715,-0.905631,-7.10581,0,0.965108,0.261852,6.94878,0.938373,0.0905024,-0.333565,-1.01718,0,0,0,1,",
-        "cameraPitch": -15.179981231689453,
-        "cameraYaw": 249.78009033203125,
+        "cameraData": "-0.147912,-0.680281,0.717872,5.93281,0,0.725856,0.687847,7.69397,-0.989001,0.101741,-0.107362,-0.789555,0,0,0,1,",
+        "cameraPitch": -43.45991897583008,
+        "cameraYaw": 98.50592041015625,
         "checkBlur": false,
         "gColB": 0,
         "gColG": 0,
@@ -67,6 +67,6 @@
         "maskBlur": false,
         "renderGrid": true,
         "renderOutline": true,
-        "ssaoRad": 0.5
+        "ssaoRad": 0.6000000238418579
     }
 }

@@ -63,7 +63,11 @@ void main(void)
     // So I put 1 instead to get some specular
     // Alhtough it is subtle bcause BlinVec
     dlCol.rgb += albedoSpec.rgb * lightColor.rgb * (1. * k_s);
-    finalCol += dlCol * lightIntensity * attenuation;
+    //finalCol += dlCol * lightIntensity * (attenuation * (1. - lightType) + lightType);
 
-    outColor = vec4(finalCol, 1.);
+    float int_val = lightIntensity * (attenuation * (1. - lightType) + lightType);
+    int_val *= k_s * k_d;
+    //outColor = vec4(albedoSpec.rgb*lightColor.rgb, int_val);
+
+    outColor = vec4(dlCol * lightIntensity * attenuation, 1.);
 }

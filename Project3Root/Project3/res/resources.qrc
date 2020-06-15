@@ -29,5 +29,6 @@
         <file>shaders/dof/dof.frag</file>
         <file>shaders/ao/ssao.frag</file>
         <file>shaders/blur/gMask.frag</file>
+        <file>shaders/ao/applySSAO.frag</file>
     </qresource>
 </RCC>

@@ -22,12 +22,10 @@
 
 DeferredRenderer::DeferredRenderer() :
     fboFinal(QOpenGLTexture::Target2D),
-    fboEditor(QOpenGLTexture::Target2D),
     fboDepth(QOpenGLTexture::Target2D),
     gboPosition(QOpenGLTexture::Target2D),
     gboAlbedoSpec(QOpenGLTexture::Target2D),
     gboNormal(QOpenGLTexture::Target2D),
-    fboEditorDepth(QOpenGLTexture::Target2D),
     fboOutlineMask(QOpenGLTexture::Target2D),
     stepBlur(QOpenGLTexture::Target2D),
     dofMask(QOpenGLTexture::Target2D),
@@ -42,17 +40,16 @@ DeferredRenderer::DeferredRenderer() :
     dofMaskBO = nullptr;
     ssaoBO = nullptr;
     blurSSAO = nullptr;
+    ssaoPass = nullptr;
 
     // List of Textures
     addTexture("Final Render");
-    addTexture("Editor");
     addTexture("Position");
     addTexture("Normals");
     addTexture("AlbedoSpec");
     addTexture("DOF Mask");
     addTexture("SSAO Debug");
     addTexture("Depth");
-    addTexture("Editor Depth");
     addTexture("Outline Mask");
     addTexture("Mouse Picking");
     addTexture("White");
@@ -85,9 +82,10 @@ DeferredRenderer::DeferredRenderer() :
     lightingState = mainState;
     // Depth Test is default false, POINT lights don't occlude each other
     // Depth write obviously false because we don't want to tamper with depth buffer
+    //lightingState.depthFunc = GL_LEQUAL;
     lightingState.blending = true;         // No blend
     lightingState.blendFuncSrc = GL_ONE;    // New Color wins
-    lightingState.blendFuncDst = GL_ZERO;   // Last color is fucked
+    lightingState.blendFuncDst = GL_ONE;   // Last color is fucked
     lightingState.faceCulling = true;
     lightingState.faceCullingMode = GL_FRONT;   // We cull what is in front, because we write whats inside the sphere (not before)
 
@@ -131,6 +129,7 @@ DeferredRenderer::~DeferredRenderer()
     delete dofBlurBO;
     delete ssaoBO;
     delete blurSSAO;
+    delete ssaoPass;
 }
 
 void DeferredRenderer::initialize()
@@ -208,6 +207,12 @@ void DeferredRenderer::initialize()
     blurMaskProgram->fragmentShaderFilename = "res/shaders/blur/gMask.frag";
     blurMaskProgram->includeForSerialization = false;
 
+    applySSAO = resourceManager->createShaderProgram();
+    applySSAO->name = "SSAO";
+    applySSAO->vertexShaderFilename = "res/shaders/blit.vert";
+    applySSAO->fragmentShaderFilename = "res/shaders/ao/applySSAO.frag";
+    applySSAO->includeForSerialization = false;
+
     // Create the main FBO
     fbo = new FramebufferObject;
     fbo->create();
@@ -238,6 +243,9 @@ void DeferredRenderer::initialize()
 
     blurSSAO = new FramebufferObject;
     blurSSAO->create();
+
+    ssaoPass = new FramebufferObject;
+    ssaoPass->create();
 
     gl->glClearColor(0.,0.,0.,0.);
     gl->glClearDepth(1.0);
@@ -274,6 +282,9 @@ void DeferredRenderer::finalize()
 
     blurSSAO->destroy();
     delete blurSSAO;
+
+    ssaoPass->destroy();
+    delete ssaoPass;
 
 }
 
@@ -344,25 +355,13 @@ void DeferredRenderer::gboPrep(int w, int h)
     gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
 
-    if (fboEditor == 0) gl->glDeleteTextures(1, &fboEditor);
-    gl->glGenTextures(1, &fboEditor);
-    gl->glBindTexture(GL_TEXTURE_2D, fboEditor);
-    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-
     gbo->bind();
-    gbo->addColorAttachment(0, fboFinal);
-    gbo->addColorAttachment(1, gboPosition);
-    gbo->addColorAttachment(2, gboNormal);
-    gbo->addColorAttachment(3, gboAlbedoSpec);
-    gbo->addColorAttachment(4, fboEditor);
+    gbo->addColorAttachment(0, gboPosition);
+    gbo->addColorAttachment(1, gboNormal);
+    gbo->addColorAttachment(2, gboAlbedoSpec);
     gbo->addDepthAttachment(fboDepth);
-    unsigned int attachments[5] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4};
-    gl->glDrawBuffers(5, attachments);
+    unsigned int attachments[3] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2};
+    gl->glDrawBuffers(3, attachments);
     gbo->checkStatus();
     gbo->release();
 
@@ -370,25 +369,14 @@ void DeferredRenderer::gboPrep(int w, int h)
 
 void DeferredRenderer::gridbgPrep(int w, int h)
 {
-    if (fboEditorDepth == 0) gl->glDeleteTextures(1, &fboEditorDepth);
-    gl->glGenTextures(1, &fboEditorDepth);
-    gl->glBindTexture(GL_TEXTURE_2D, fboEditorDepth);
-    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, w, h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-
-
     // We reuse fboDepth without TESTING OR WRITING
     // We read GL_FragDepth because it is used for determining in fragment
     // if we hit grid or nah
     // If we have something being corrupted, we will use the fboEditorDepth and pass fboDepth for read
 
     gridbgBO->bind();
-    gridbgBO->addColorAttachment(0, fboEditor);
-    gridbgBO->addDepthAttachment(fboEditorDepth);
+    gridbgBO->addColorAttachment(0, fboFinal);
+    gridbgBO->addDepthAttachment(fboDepth);
     gridbgBO->checkStatus();
     gridbgBO->release();
 }
@@ -407,13 +395,13 @@ void DeferredRenderer::outlinePrep(int w, int h)
 
     maskBO->bind();
     maskBO->addColorAttachment(0, fboOutlineMask);
-    maskBO->addDepthAttachment(fboEditorDepth);
+    maskBO->addDepthAttachment(fboDepth);
     maskBO->checkStatus();
     maskBO->release();
 
     outlineBO->bind();
-    outlineBO->addColorAttachment(0, fboEditor);
-    outlineBO->addDepthAttachment(fboEditorDepth);
+    outlineBO->addColorAttachment(0, fboFinal);
+    outlineBO->addDepthAttachment(fboDepth);
     outlineBO->checkStatus();
     outlineBO->release();
 
@@ -449,9 +437,9 @@ void DeferredRenderer::blurDebugPrep(int w, int h)
     gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, w, h, 0, GL_RED, GL_FLOAT, nullptr);
 
     blurDebugBO->bind();
-    blurDebugBO->addColorAttachment(0, fboEditor);
+    blurDebugBO->addColorAttachment(0, fboFinal);
     blurDebugBO->addColorAttachment(1, stepBlur);
-    blurDebugBO->addDepthAttachment(fboEditorDepth);
+    blurDebugBO->addDepthAttachment(fboDepth);
     // In contrast to Geometry Pass, we don't decide here which buffer si being written
     // Or which buffers are written, it is done in 2 passes of blur shader
     blurDebugBO->checkStatus();
@@ -472,7 +460,7 @@ void DeferredRenderer::dofPrep(int w, int h)
 
     dofMaskBO->bind();
     dofMaskBO->addColorAttachment(0, dofMask);
-    dofMaskBO->addDepthAttachment(fboEditorDepth);
+    dofMaskBO->addDepthAttachment(fboDepth);
     dofMaskBO->checkStatus();
     dofMaskBO->release();
 
@@ -519,6 +507,12 @@ void DeferredRenderer::ssaoPrep(int w, int h)
     blurSSAO->addDepthAttachment(fboDepth);
     blurSSAO->checkStatus();
     blurSSAO->release();
+
+    ssaoPass->bind();
+    ssaoPass->addColorAttachment(0, fboFinal);
+    ssaoPass->addDepthAttachment(fboDepth);
+    ssaoPass->checkStatus();
+    ssaoPass->release();
 }
 
 void DeferredRenderer::resize(int w, int h)
@@ -580,6 +574,10 @@ void DeferredRenderer::CleanFirstBuffers()
     blurSSAO->bind();
     gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     blurSSAO->release();
+
+    ssaoPass->bind();
+    gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    ssaoPass->release();
 }
 
 void DeferredRenderer::render(Camera *camera)
@@ -591,23 +589,17 @@ void DeferredRenderer::render(Camera *camera)
     // Passes
     passMeshes(camera);
 
-    if(shownTexture() == "Final Render" || shownTexture() == "DOF Mask" || shownTexture() == "SSAO Debug")
-    {
+    PassSSAO(camera);
+    passLighting(camera);
+    PassDOF(camera);
 
-        PassSSAO(camera);
-        passLighting(camera);
-        PassDOF(camera);
+    PassGridBackground(camera);
+    PassOutline(camera);
 
-    }
-    else // I do else to get every debug things without worrying if it would be seen
-    {
-        PassGridBackground(camera);
-        PassOutline(camera);
+    GLuint t = (miscSettings->maskBlur) ? fboOutlineMask : UINT_MAX;
+    if(miscSettings->checkBlur)
+        PassBlur(blurDebugBO, fboFinal, fboDepth, t);
 
-        GLuint t = (miscSettings->maskBlur) ? fboOutlineMask : UINT_MAX;
-        if(miscSettings->checkBlur)
-            PassBlur(blurDebugBO, fboEditor, fboEditorDepth, t);
-    }
 
     passBlit();
 }
@@ -659,54 +651,86 @@ void DeferredRenderer::RegenSSAORandoms()
 void DeferredRenderer::PassSSAO(Camera* camera)
 {
 
-    if(!miscSettings->checkSSAO) return;
-
-    OpenGLErrorGuard guard("DeferredRenderer::PassSSAO()");
-    ssaoState.apply();
-
-    ssaoBO->bind();
-
-    gl->glClear(GL_COLOR_BUFFER_BIT);
-
-    QOpenGLShaderProgram &program = ssaoProgram->program;
-    if(program.bind())
+    if(miscSettings->checkSSAO)
     {
-        RegenSSAORandoms();
 
-        program.setUniformValue("depth", 0);
-        gl->glActiveTexture(GL_TEXTURE0);
-        gl->glBindTexture(GL_TEXTURE_2D, fboDepth);
+        OpenGLErrorGuard guard("DeferredRenderer::PassSSAO()");
+        ssaoState.apply();
 
-        program.setUniformValue("normal", 1);
-        gl->glActiveTexture(GL_TEXTURE1);
-        gl->glBindTexture(GL_TEXTURE_2D, gboNormal);        
+        ssaoBO->bind();
 
-        program.setUniformValue("noiseTex", 2);
-        gl->glActiveTexture(GL_TEXTURE2);
-        gl->glBindTexture(GL_TEXTURE_2D, noiseTex);
+        gl->glClear(GL_COLOR_BUFFER_BIT);
 
-        program.setUniformValue("projection", camera->projectionMatrix);        
+        {
 
-        program.setUniformValueArray("kernel", &ssaoKernel[0], ssaoKernel.size());
+            QOpenGLShaderProgram &program = ssaoProgram->program;
+            if(program.bind())
+            {
+                RegenSSAORandoms();
 
-        program.setUniformValue("camParams", camera->getLeftRightBottomTop());
-        program.setUniformValue("z", camera->znear, camera->zfar);
-        program.setUniformValue("viewP", camera->viewportWidth, camera->viewportHeight);
+                program.setUniformValue("depth", 0);
+                gl->glActiveTexture(GL_TEXTURE0);
+                gl->glBindTexture(GL_TEXTURE_2D, fboDepth);
 
-        // Allow substitution of the aoRad through miscSettings
-        program.setUniformValue("aoRad", miscSettings->aoRadius);
+                program.setUniformValue("normal", 1);
+                gl->glActiveTexture(GL_TEXTURE1);
+                gl->glBindTexture(GL_TEXTURE_2D, gboNormal);
 
-        resourceManager->quad->submeshes[0]->draw();
+                program.setUniformValue("noiseTex", 2);
+                gl->glActiveTexture(GL_TEXTURE2);
+                gl->glBindTexture(GL_TEXTURE_2D, noiseTex);
+
+                program.setUniformValue("projection", camera->projectionMatrix);
+
+                program.setUniformValueArray("kernel", &ssaoKernel[0], ssaoKernel.size());
+
+                program.setUniformValue("camParams", camera->getLeftRightBottomTop());
+                program.setUniformValue("z", camera->znear, camera->zfar);
+                program.setUniformValue("viewP", camera->viewportWidth, camera->viewportHeight);
+
+                // Allow substitution of the aoRad through miscSettings
+                program.setUniformValue("aoRad", miscSettings->aoRadius);
+
+                resourceManager->quad->submeshes[0]->draw();
 
 
+            }
+        }
+
+        ssaoBO->release();
+
+        PassBlurMask(blurSSAO,fboSSAO);
     }
 
-    ssaoBO->release();
 
-    PassBlurMask(blurSSAO,fboSSAO);
-    //PassBlurMask(blurSSAO,fboSSAO);
-    //PassBlurMask(blurSSAO,fboSSAO);
-    //PassBlur(blurSSAO, fboSSAO, fboDepth);
+    mainState.apply();
+    ssaoPass->bind();
+
+    QOpenGLShaderProgram &program = applySSAO->program;
+    if(program.bind())
+    {
+        program.setUniformValue("ssaoMask", 0);
+        gl->glActiveTexture(GL_TEXTURE0);
+        if(miscSettings->checkSSAO)
+        {
+            if(miscSettings->blurSSAO)
+                gl->glBindTexture(GL_TEXTURE_2D, fboBlurSSAO);
+            else
+                gl->glBindTexture(GL_TEXTURE_2D, fboSSAO);
+        }
+        else
+            gl->glBindTexture(GL_TEXTURE_2D, resourceManager->texWhite->textureId());
+
+        program.setUniformValue("albedo", 1);
+        gl->glActiveTexture(GL_TEXTURE1);
+        gl->glBindTexture(GL_TEXTURE_2D, gboAlbedoSpec);
+
+        program.setUniformValue("AMBIENT", miscSettings->AMBIENT);
+
+        resourceManager->quad->submeshes[0]->draw();
+    }
+
+    ssaoPass->release();
 }
 
 void DeferredRenderer::PassBlurMask(FramebufferObject *fb, GLuint Read, GLuint Mask)
@@ -974,27 +998,17 @@ void DeferredRenderer::passMeshes(Camera *camera)
 
     if(program.bind())
     {
-
-        program.setUniformValue("outColor", 0);
+        program.setUniformValue("gboPosition", 0);
         gl->glActiveTexture(GL_TEXTURE0);
-        gl->glBindTexture(GL_TEXTURE_2D, fboFinal);
-
-        program.setUniformValue("gboPosition", 1);
-        gl->glActiveTexture(GL_TEXTURE1);
         gl->glBindTexture(GL_TEXTURE_2D, gboPosition);
 
-        program.setUniformValue("gboNormal", 2);
-        gl->glActiveTexture(GL_TEXTURE2);
+        program.setUniformValue("gboNormal", 1);
+        gl->glActiveTexture(GL_TEXTURE1);
         gl->glBindTexture(GL_TEXTURE_2D, gboNormal);
 
-        program.setUniformValue("gboAlbedoSpec", 3);
-        gl->glActiveTexture(GL_TEXTURE3);
+        program.setUniformValue("gboAlbedoSpec", 2);
+        gl->glActiveTexture(GL_TEXTURE2);
         gl->glBindTexture(GL_TEXTURE_2D, gboAlbedoSpec);
-
-        program.setUniformValue("fboEditor", 4);
-        gl->glActiveTexture(GL_TEXTURE4);
-        gl->glBindTexture(GL_TEXTURE_2D, fboEditor);
-
 
         program.setUniformValue("viewMatrix", camera->viewMatrix);
         program.setUniformValue("projectionMatrix", camera->projectionMatrix);
@@ -1151,9 +1165,6 @@ void DeferredRenderer::passLighting(Camera* camera)
                 program.setUniformValue("lightRange", light->range);
                 program.setUniformValue("lightIntensity", light->intensity);
 
-
-
-
                 program.setUniformValue("lightColor", QVector3D(light->color.redF(), light->color.greenF(), light->color.blueF()));
 
                 // Draw Light onto the Buffers
@@ -1176,7 +1187,7 @@ void DeferredRenderer::passLighting(Camera* camera)
                 }
                 else if(light->type == LightSource::Type::Directional)
                 {
-                   gl->glDisable(GL_DEPTH_TEST);
+                   gl->glEnable(GL_DEPTH_TEST);
                    gl->glDisable(GL_CULL_FACE);
                    program.setUniformValue("worldViewMatrix", QMatrix4x4());
                    program.setUniformValue("projectionMatrix", QMatrix4x4());
@@ -1221,16 +1232,9 @@ void DeferredRenderer::passBlit()
             else
                 gl->glBindTexture(GL_TEXTURE_2D, fboSSAO);
         }
-        else if(shownTexture() == "Editor"){
-            gl->glBindTexture(GL_TEXTURE_2D, fboEditor);
-        }
         else if(shownTexture() == "Depth"){
             program.setUniformValue("blitDepth", true);
             gl->glBindTexture(GL_TEXTURE_2D, fboDepth);
-        }
-        else if(shownTexture() == "Editor Depth"){
-            program.setUniformValue("blitDepth", true);
-            gl->glBindTexture(GL_TEXTURE_2D, fboEditorDepth);
         }
         else if(shownTexture() == "Position"){
             gl->glBindTexture(GL_TEXTURE_2D, gboPosition);
