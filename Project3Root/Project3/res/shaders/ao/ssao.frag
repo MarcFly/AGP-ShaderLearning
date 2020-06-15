@@ -50,14 +50,17 @@ void main()
 {
     float d = texture2D(depth, texCoord).x;
     vec3 fragPos = depthPixelPos(d, inverse(projection), viewP);
-    vec3 vnormal = texture2D(normal, vec2(rand(texCoord))).rgb;
+    vec3 vnormal = texture2D(normal,texCoord).rgb;
 
-    vec2 nScale = viewP / 4;
-    vec3 rvec = texture2D(noiseTex, texCoord/viewP).rgb;
+    vec2 nScale = viewP / 4.;
+    vec3 rvec = texture2D(noiseTex, texCoord*viewP).rgb;
 
     vec3 tangent = normalize(rvec - vnormal * dot(rvec, vnormal));
+    //vec3 tangent = cross(vnormal, vec3(0.,1.,0.));
     vec3 bitangent = cross(vnormal, tangent);
     mat3 TBN = mat3(tangent, bitangent, vnormal);
+
+
 
     float occl = 0.;
     for(int i = 0;i < 64; ++i)
@@ -85,8 +88,9 @@ void main()
         // is or not behind the actual geometry
         // In addition we test if the distance is greater than it should
         // thus making sure that distances too big don't occlude each other
-        float rangeCheck = smoothstep(0., 1., aoRad / abs(smplpos.z - smpl.z));
-        occl += (smplpos.z < smpl.z - .002 ? 1.:0.) * rangeCheck;
+        float rangeCheck = smoothstep(0., 1., aoRad / abs(fragPos.z - smpl.z));
+        //rangeCheck *= rangeCheck;
+        occl += (smplpos.z < smpl.z - .02 ? 1.:0.) * rangeCheck;
 
 
     }

@@ -671,15 +671,15 @@ void DeferredRenderer::PassSSAO(Camera* camera)
     QOpenGLShaderProgram &program = ssaoProgram->program;
     if(program.bind())
     {
+        RegenSSAORandoms();
+
         program.setUniformValue("depth", 0);
         gl->glActiveTexture(GL_TEXTURE0);
         gl->glBindTexture(GL_TEXTURE_2D, fboDepth);
 
         program.setUniformValue("normal", 1);
         gl->glActiveTexture(GL_TEXTURE1);
-        gl->glBindTexture(GL_TEXTURE_2D, gboNormal);
-
-        RegenSSAORandoms();
+        gl->glBindTexture(GL_TEXTURE_2D, gboNormal);        
 
         program.setUniformValue("noiseTex", 2);
         gl->glActiveTexture(GL_TEXTURE2);
@@ -704,6 +704,8 @@ void DeferredRenderer::PassSSAO(Camera* camera)
     ssaoBO->release();
 
     PassBlurMask(blurSSAO,fboSSAO);
+    //PassBlurMask(blurSSAO,fboSSAO);
+    //PassBlurMask(blurSSAO,fboSSAO);
     //PassBlur(blurSSAO, fboSSAO, fboDepth);
 }
 
@@ -1214,7 +1216,10 @@ void DeferredRenderer::passBlit()
             gl->glBindTexture(GL_TEXTURE_2D, dofMask);
         }
         else if(shownTexture() == "SSAO Debug") {
-            gl->glBindTexture(GL_TEXTURE_2D, fboSSAO);
+            if(miscSettings->blurSSAO)
+                gl->glBindTexture(GL_TEXTURE_2D, fboBlurSSAO);
+            else
+                gl->glBindTexture(GL_TEXTURE_2D, fboSSAO);
         }
         else if(shownTexture() == "Editor"){
             gl->glBindTexture(GL_TEXTURE_2D, fboEditor);
