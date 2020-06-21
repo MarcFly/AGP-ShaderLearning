@@ -149,7 +149,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::openProject()
 {
-    QString path = QFileDialog::getOpenFileName(this,"Open project", "../Scenes", QString::fromLatin1("Json files (*.json)"));
+    QString path = QFileDialog::getOpenFileName(this,"Open project", "./", QString::fromLatin1("Json files (*.json)"));
     if (!path.isEmpty())
     {
         QFile openFile(path);
@@ -172,7 +172,7 @@ void MainWindow::openProject()
 
 void MainWindow::saveProject()
 {
-    QString path = QFileDialog::getSaveFileName(this, "Save project", "../Scenes", QString::fromLatin1("Json files (*.json)"));
+    QString path = QFileDialog::getSaveFileName(this, "Save project", "./", QString::fromLatin1("Json files (*.json)"));
     if (!path.isEmpty())
     {
         QFile saveFile(path);
@@ -482,10 +482,7 @@ void MainWindow::onRenderOutputChanged(QString name)
 
 void MainWindow::openScene1()
 {
-    QString path = QDir::currentPath();
-    QString chopStr = "Project3";
-    path.chop(chopStr.length());
-    path.append("Scenes/Samples/sample1.json");
+    QString path = "./Scenes/Samples/sample1.json";
     if (!path.isEmpty())
     {
         QFile openFile(path);
@@ -508,10 +505,7 @@ void MainWindow::openScene1()
 
 void MainWindow::openScene2()
 {
-    QString path = QDir::currentPath();
-    QString chopStr = "Project3";
-    path.chop(chopStr.length());
-    path.append("Scenes/Samples/sample2.json");
+    QString path = "./Scenes/Samples/sample2.json";
     if (!path.isEmpty())
     {
         QFile openFile(path);
@@ -534,10 +528,7 @@ void MainWindow::openScene2()
 
 void MainWindow::openScene3()
 {
-    QString path = QDir::currentPath();
-    QString chopStr = "Project3";
-    path.chop(chopStr.length());
-    path.append("Scenes/Samples/sample3.json");
+    QString path = "./Scenes/Samples/sample3.json";
     if (!path.isEmpty())
     {
         QFile openFile(path);
